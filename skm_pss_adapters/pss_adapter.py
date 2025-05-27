@@ -1,0 +1,170 @@
+'''
+Exports ..... formats ..... of PSS model
+'''
+# general imports
+import json
+import os, sys, re
+import tempfile
+import random
+import time
+from collections import defaultdict, namedtuple
+from datetime import datetime, timedelta
+from io import BytesIO, StringIO
+from itertools import combinations, product, permutations
+from pathlib import Path
+
+
+from .utils import Reaction
+
+# # SBGN
+# from .sbgn_api import SBGN
+
+# SBML
+from .sbml_api import SBML
+
+
+
+# # projection for DiNAR
+# from .pss_dinar_translation import pss_dinar_translation
+
+################################################################################
+# Handles all exports, and has paths for endpoints to use
+################################################################################
+class PSSAdapter():
+    '''Exports for PSS model.
+    Exports (will) include:
+        - SBML
+        - *SBGN
+        - *DiNAR projection
+        - *JSON (for API)
+    '''
+
+    def __init__(self, graph):
+        '''
+        Constructor for PSSAdapter class.
+        '''
+
+        self.graph = graph
+
+        # TODO Create list of reactions to be exported:
+        #   if reactions is defined, limit to list of reactions
+        #   OR if pathways is defined, limit to reactions in list of pathways
+
+        self.collect()
+
+
+
+    def collect(self):
+        '''Collect reaction list and pathway annotations (all reusable stuff)
+            Limit to reactions in the PATHWAYS attr
+            Limit to reactions in REACTIONS attr
+        '''
+
+        invented_reason_allowlist = ["invented:harmonise-location"]
+
+        ### Part 1: include restricted = no external_links filter
+        def _list_reaction_ids(tx):
+            cy = '''
+                MATCH (r:Reaction)-[]-(n)
+                RETURN DISTINCT r.reaction_id AS reaction_id
+                '''
+            result = tx.run(cy)
+            return [r['reaction_id'] for r in result]
+
+        self.all_reactions = self.graph.run_query(_list_reaction_ids)
+
+        ### Part 2: public = filter external_links to reactions with at least
+        #                    one source which is not 'other' or 'invented'
+        #                    but can be from the allowlist
+        def _list_reaction_ids_filter(tx, invented_reason_allowlist):
+            cy = '''
+                MATCH (r:Reaction)-[]-(n)
+                WITH r,
+                    size([link IN r.external_links WHERE link =~ 'other:.*' | 1]) AS a,
+                    size([link IN r.external_links WHERE link =~ 'invented:.*' | 1]) AS b,
+                    size([link IN r.external_links WHERE link IN $invented_reason_allowlist | 1]) AS c
+                WHERE size(r.external_links) > a+b
+                OR c>0
+                RETURN DISTINCT r.reaction_id AS reaction_id
+                '''
+            result = tx.run(
+                cy, invented_reason_allowlist=invented_reason_allowlist)
+            return [r['reaction_id'] for r in result]
+
+        self.public_reactions = self.graph.run_query(
+            _list_reaction_ids_filter, invented_reason_allowlist)
+
+        # fetch annotations
+        def _collect_node_annotations(tx):
+            cy = '''
+                MATCH (n)
+                WHERE NOT ('Reaction' IN labels(n) OR 'Family' in labels(n) )
+                RETURN n.name AS name, n.pathway AS pathway, labels(n) AS labels
+                '''
+            result = tx.run(cy)
+            return [x for x in result]
+
+        node_annotations = self.graph.run_query(_collect_node_annotations)
+        self.node_annotations = {d["name"]: d for d in node_annotations}
+
+        def _collect_reaction_pathways(tx):
+            cy = '''
+                MATCH (r:Reaction)--(n)
+                RETURN r.name AS name, collect(DISTINCT n.pathway) AS pathway
+                '''
+            result = tx.run(cy)
+            return [x for x in result]
+
+        self.reaction_pathways = self.graph.run_query(
+            _collect_reaction_pathways)
+
+        def _get_all_reaction_paths(tx, reaction_ids):
+            cy = '''
+                UNWIND $reaction_ids as id
+                WITH id
+                MATCH p=(r:Reaction)-[]-()
+                WHERE r.reaction_id=id
+                RETURN  id AS reaction_id,
+                        r.reaction_type AS reaction_type,
+                        r.reaction_effect AS reaction_effect,
+                        r.reaction_mechanism AS reaction_mechanism,
+                        r.external_links AS external_links,
+                        r.species AS species,
+                        collect(p) AS path
+                '''
+            result = tx.run(cy, reaction_ids=reaction_ids)
+            return [r for r in result]
+
+        self.reaction_paths = {
+            d['reaction_id']: d
+            for d in self.graph.run_query(_get_all_reaction_paths,
+                                          self.all_reactions)
+        }
+
+    def create_sbml(self, access='public', filename=None):
+        '''  '''
+
+        if access == 'public':
+            reaction_list = self.public_reactions
+        else:
+            reaction_list = self.all_reactions
+
+        sbml = SBML(self.graph)
+
+        for reaction_id in reaction_list:
+            print(reaction_id)
+            reaction = self.reaction_paths[reaction_id]
+
+            # create reaction object
+            reaction_ = Reaction(
+                reaction_id,
+                reaction['reaction_type'],
+                reaction_mechanism=reaction.get('reaction_mechanism', None),
+                external_links=reaction.get('external_links', [])
+            )
+
+            edge_list = reaction['path']
+            sbml.add_reaction(reaction_, edge_list)
+
+        return sbml.write(filename)
+

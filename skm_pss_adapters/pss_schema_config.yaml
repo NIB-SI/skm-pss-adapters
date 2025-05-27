@@ -1,0 +1,65 @@
+# Necessary bits of information on PSS contents
+
+pathways:
+  - Signalling:
+    - Calcium
+    - Cell death
+    - Circadian rhythm
+    - Growth
+    - Heat-shock proteins (HSPs)
+    - MAP kinases (MAPKs)
+    - Perception and resistance genes
+    - Phospho-inosytol-phosphate (PIP)
+    - Reactive oxygen species (ROS)
+    - Senescence
+    - Tuberisation
+    - Other
+
+  - Hormone:
+    - Abscisic acid (ABA)
+    - Auxins (AUX)
+    - Brassinosteroids (BS)
+    - Cytokinins (CK)
+    - Ethylene (ET)
+    - Gibberellin (GA)
+    - Jasmonate (JA)
+    - Peptides
+    - Pipecolic acid
+    - Salicylic acid (SA)
+    - Strigolactones (SL)
+
+  - Primary metabolism:
+    - Amino-acids
+    - Carbohydrates
+    - Cell-wall
+    - Lipids
+    - Nitrogen
+    - Nucleotides
+    - Photosynthesis
+    - Respiration
+    - Sulfur
+
+  - Secondary metabolism:
+    - Alkaloids
+    - Anthocyanins
+    - Flavonoids
+    - Terpenoids
+
+  - Regulation:
+    - Silencing
+    - Splicing
+    - Transcription & Translation
+    - Transport
+
+  - Degradation:
+    - Autophagy
+    - Phagosome
+    - Proteasome
+    - Ubiquitination
+    - Other
+
+  - Stress:
+    - Drought
+    - Heat
+    - Waterlogging
+    - Biotic

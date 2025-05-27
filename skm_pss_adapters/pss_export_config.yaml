@@ -1,0 +1,275 @@
+# Settings and mappings for exporting PSS from db to other formats
+
+#--------------------------
+# Database schema
+#--------------------------
+
+relevant_labels:
+  - Complex
+  - Foreign
+  - Metabolite
+  - Process
+
+#-------------------------
+# Renaming settings
+#-------------------------
+# Used to generate IDs for species in Boolnet, SBML, SBGN
+
+compartment_to_short:
+  apoplast: "ap"
+  chloroplast: "chl"
+  cytoplasm: "cyt"
+  endoplasmic reticulum: "er"
+  extracellular: "x"
+  golgi apparatus: "ga"
+  mitochondrion: "mit"
+  nucleolus: "nucl"
+  nucleus: "nuc"
+  peroxisome: "per"
+  unknown: "cyt"
+  vacuole: "vac"
+
+node_form_to_short:
+  abiotic: "ab"
+  complex: "c"
+  complex_active: "ca"
+  foreign_entity: "f"
+  gene: "g"
+  metabolite: "m"
+  mirna: "mi"
+  mrna: "mr"
+  ncrna: "nc"
+  process: "pr"
+  process_active: "pra"
+  protein: "p"
+  protein_active: "pa"
+  abstract: "abst"
+  abstract_active: "absta"
+
+#-------------------------
+# SBO annotations
+#-------------------------
+
+compartment_to_SBO: 0000410
+
+# annotate species in listOfSpecies
+# according to SBML l3v2,  should be child of "physical entity representation" SBO:0000236
+# Note: https://github.com/EBI-BioModels/SBO/issues/5
+node_form_to_SBO:
+  # Following are children of "material entity" ("correct" according to above issue)
+  metabolite:       0000247 # simple chemical
+  protein:          0000297 # protein complex, alternative: 252-polypeptide chain
+  protein_active:   0000297 # protein complex, alternative: 252-polypeptide chain
+  gene:             0000243 # gene
+  process:          0000375 # process
+  process_active:   0000375 # process
+  complex:          0000296 # macromolecular complex, alternative: 253-chemical macromolecule
+  complex_active:   0000296 # macromolecular complex, alternative: 253-chemical macromolecule
+  unknown:          0000285 # material entity of unspecified nature
+  abstract:         0000285 # material entity of unspecified nature
+  abstract_active:  0000285 # material entity of unspecified nature
+
+  foreign_entity:   0000405 # perturbing agent
+  abiotic:          0000405 # perturbing agent
+
+  # Following are children of "unit of genetic information" ("incorrect" according to above issue)
+  mrna:             0000278 # messenger RNA, alternative:0000250-ribonucleic acid
+  mirna:            0000316 # microRNA
+  ncrna:            0000334 # non-coding RNA
+  ta-sirna:         0000334 # non-coding RNA
+
+# annotate reactions in listOfReactions
+# according to SBML l3v2, should be child of "occurring entity representation" SBO:0000231
+# Using children of "process"
+reaction_type_to_SBO:
+  catalysis: 176
+
+  # translocation (to split based on whether a protein is involved)
+  translocation:            0000185 # translocation reaction , alternative: many # TODO
+  transport:                0000655 # transport reaction (with protein), alternative: many # TODO
+
+  binding/oligomerisation:  0000177 # non-covalent binding (PPI=non-covalent), alternative: 0000344-molecular interaction
+  dissociation:             0000180 # dissociation (non-covalent complex to independent biochemical entities)
+
+  degradation/secretion:    0000179  # degradation
+
+  # transcriptional/translational activation (to split based on "reaction_mechanism")
+  # alternative: 0000589-genetic production
+  # there is no "activation" term for transcription, translation #TODO
+  # add "role" to the modifier as e.g. stimulator (SBO:0000459) in node_role_to_SBO #TODO
+  transcriptional activation: 0000183 # transcription
+  translational activation:   0000184 # translation
+
+  # transcriptional/translational repression (to split based on "reaction_mechanism")
+  # alternative: 0000589-genetic production
+  # there is no "inhibition"/"repression" term for transcription, translation
+  # add "role" to the modifier as e.g. inhibitor (SBO:0000020) in node_role_to_SBO #TODO
+  transcriptional repression: 0000183 # transcription
+  translational repression:   0000184 # translation
+
+  protein activation:         0000656 # activation (conformational change of a protein)
+  protein deactivation:       0000665 # inactivation (conformational change of a protein)
+
+  unknown:                    0000176 # biochemical reaction
+  cleavage/auto-cleavage:     0000178 # cleavage
+
+# TODO
+# annotate species in speciesReference (per reaction)
+# according to SBML l3v2, should be child of "participant role" SBO:0000003
+node_role_to_SBO:
+  transporter: 0000248 # transporter
+  receptor: 0000244 # receptor
+
+#-------------------------
+# SBGN settings
+#-------------------------
+
+label_to_class:
+  Metabolite: SIMPLE_CHEMICAL
+  MetaboliteFamily: SIMPLE_CHEMICAL
+  ForeignCoding: MACROMOLECULE
+  PlantCoding: MACROMOLECULE
+  Complex: COMPLEX
+  Process: UNSPECIFIED_ENTITY
+  PlantAbstract: UNSPECIFIED_ENTITY
+  ForeignEntity: UNSPECIFIED_ENTITY
+  ForeignAbiotic: PERTURBING_AGENT
+
+label_to_form:
+  Metabolite: metabolite
+  MetaboliteFamily: metabolite
+  ForeignCoding: protein
+  PlantCoding: protein
+  Complex: complex
+  Process: process
+  PlantAbstract: protein
+  ForeignEntity: foreign_entity
+  ForeignAbiotic: abiotic
+
+form_to_state:
+  na: null
+  metabolite: null
+  protein: inactive
+  protein_active: active
+  gene: null
+  mrna: null
+  mirna: null
+  ncrna: null
+  process: inactive
+  process_active: active
+  complex: inactive
+  complex_active: active
+  abiotic: null
+  foreign_entity: null
+
+reaction_type_to_process:
+  catalysis/auto-catalysis: PROCESS
+  catalysis: PROCESS
+  cleavage/auto-cleavage: PROCESS
+  protein activation: PROCESS
+  degradation/secretion: PROCESS
+  translocation: PROCESS
+  undefined: PROCESS
+  protein deactivation: PROCESS
+  transcriptional/translational repression: PROCESS
+  transcriptional/translational induction: PROCESS
+  transcriptional/translational activation: PROCESS
+  binding/oligomerisation: ASSOCIATION
+  dissociation: DISSOCIATION
+  unknown: PROCESS
+
+edge_to_arc:
+  catalysis/auto-catalysis:
+    PRODUCT: PRODUCTION
+    SUBSTRATE: CONSUMPTION
+    MODIFIER: CATALYSIS
+  catalysis:
+    PRODUCT: PRODUCTION
+    SUBSTRATE: CONSUMPTION
+    MODIFIER: CATALYSIS
+  cleavage/auto-cleavage:
+    PRODUCT: PRODUCTION
+    SUBSTRATE: CONSUMPTION
+    MODIFIER: CATALYSIS
+  protein activation:
+    PRODUCT: PRODUCTION
+    SUBSTRATE: CONSUMPTION
+    MODIFIER: STIMULATION
+  protein deactivation:
+    PRODUCT: PRODUCTION
+    SUBSTRATE: CONSUMPTION
+    MODIFIER: STIMULATION
+  degradation/secretion:
+    PRODUCT: PRODUCTION
+    SUBSTRATE: CONSUMPTION
+    MODIFIER: CATALYSIS
+  binding/oligomerisation:
+    PRODUCT: PRODUCTION
+    SUBSTRATE: CONSUMPTION
+    MODIFIER: CATALYSIS
+  dissociation:
+    PRODUCT: PRODUCTION
+    SUBSTRATE: CONSUMPTION
+    MODIFIER: CATALYSIS
+  translocation:
+    PRODUCT: PRODUCTION
+    SUBSTRATE: CONSUMPTION
+    MODIFIER: STIMULATION
+  transcriptional/translational induction:
+    PRODUCT: PRODUCTION
+    SUBSTRATE: CONSUMPTION
+    MODIFIER: STIMULATION
+  transcriptional/translational activation:
+    PRODUCT: PRODUCTION
+    SUBSTRATE: CONSUMPTION
+    MODIFIER: STIMULATION
+  transcriptional/translational repression:
+    PRODUCT: PRODUCTION
+    SUBSTRATE: CONSUMPTION
+    MODIFIER: INHIBITION
+  unknown:
+    ACTIVATES: STIMULATION
+    INHIBITS: INHIBITION
+    PRODUCT: PRODUCTION
+    SUBSTRATE: CONSUMPTION
+    TRANSLOCATE_FROM: CONSUMPTION
+    TRANSLOCATE_TO: PRODUCTION
+    MODIFIER: CATALYSIS
+
+# The colours are in hex format
+form_to_colour:
+  metabolite: "#abb0d0"
+  protein: "#7fffd4"
+  protein_active: "#7fffd4"
+  gene: "#006b47"
+  mrna: "#006b47"
+  mirna: "#77c0c9"
+  ncrna: "#77c0c9"
+  process: "#a239fa"
+  process_active: "#a239fa"
+  complex: "#ffefd5"
+  complex_active: "#ffefd5"
+  reaction: "#ffffff"
+  protein_state: "#e0e0e0"
+  protein_active_state: "#ffffff"
+  process_state: "#e0e0e0"
+  process_active_state: "#ffffff"
+  complex_state: "#e0e0e0"
+  complex_active_state: "#ffffff"
+  foreign_entity: "#f2a1bd"
+  compartment: "#ebebeb"
+  arc: "#555555"
+  abiotic: "#f2a1bd"
+
+compartment_to_colour:
+  cytoplasm: "#c8c831"
+  chloroplast: "#228b22"
+  endoplasmic reticulum: "#f16f36"
+  golgi apparatus: "#e69500"
+  nucleus: "#8b2257"
+  peroxisome: "#2200e6"
+  vacuole: "#31c8c8"
+  mitochondrion: "#adff2f"
+  apoplast: "#1b1b07"
+  nucleolus: "#c8317d"
+  extracellular: "#f5f5dc"
