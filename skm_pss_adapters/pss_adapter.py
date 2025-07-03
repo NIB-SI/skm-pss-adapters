@@ -1,26 +1,14 @@
 '''
 Exports ..... formats ..... of PSS model
 '''
-# general imports
-import json
-import os, sys, re
-import tempfile
-import random
-import time
-from collections import defaultdict, namedtuple
-from datetime import datetime, timedelta
-from io import BytesIO, StringIO
-from itertools import combinations, product, permutations
-from pathlib import Path
-
-
-from .utils import Reaction
+# library imports
+from .entity_classes import Reaction
 
 # # SBGN
 # from .sbgn_api import SBGN
 
 # SBML
-from .sbml_api import SBML
+from .sbml import SBML
 
 
 
@@ -31,7 +19,7 @@ from .sbml_api import SBML
 # Handles all exports, and has paths for endpoints to use
 ################################################################################
 class PSSAdapter():
-    '''Exports for PSS model.
+    '''Exports for PSS model.s
     Exports (will) include:
         - SBML
         - *SBGN

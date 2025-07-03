@@ -118,7 +118,7 @@ reaction_type_to_SBO:
 # according to SBML l3v2, should be child of "participant role" SBO:0000003
 node_role_to_SBO:
   transporter: 0000248 # transporter
-  receptor: 0000244 # receptor
+  receptor:    0000244 # receptor
 
 #-------------------------
 # SBGN settings

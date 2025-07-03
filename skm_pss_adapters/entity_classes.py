@@ -1,0 +1,237 @@
+'''
+
+'''
+
+import re
+from .config import pss_export_config
+
+#-------------------------------------
+#  Helper classes (for nodes and reactions)
+#-------------------------------------
+
+class Reaction:
+    def __init__(self, reaction_id, reaction_type, reaction_mechanism=None, external_links=None):
+        self.id = reaction_id
+        self.reaction_id = reaction_id
+        self.reaction_type = reaction_type
+        self.reaction_mechanism = reaction_mechanism
+        self.external_links = external_links if external_links is not None else []
+        self.substrates = []
+        self.products = []
+        self.modifiers = []
+
+        self.set_SBO_term()
+
+    def set_SBO_term(self):
+        """ Set the SBO term for the reaction based on its type. """
+        if self.reaction_type in pss_export_config.reaction_type_to_SBO:
+            self.sbo_term = pss_export_config.reaction_type_to_SBO[self.reaction_type]
+        else:
+            # TODO translation vs transcription based on  "reaction_mechanism"
+            self.sbo_term = None
+
+    def add_substrate(self, substrate):
+        self.substrates.append(substrate)
+
+    def add_product(self, product):
+        self.products.append(product)
+
+    def add_modifier(self, modifier):
+        self.modifiers.append(modifier)
+
+    def __repr__(self):
+        return (f"Reaction(id={self.id}, "
+                f"reaction_type={self.reaction_type}, "
+                f"substrates={self.substrates}, "
+                f"products={self.products}, "
+                f"modifiers={self.modifiers})")
+
+class  SpeciesType:
+    def __init__(self, name, form=None):
+        '''
+        Parameters
+        ----------
+        name: str
+            e.g. 'WRKY11'
+        form: str
+            e.g. 'protein', 'gene', 'complex'
+        '''
+
+        self.name = name
+        self.form = form.lower()
+
+        self.set_SBO_term()
+
+    def set_SBO_term(self):
+        """ Set the SBO term for the species type based on its form. """
+        if self.form in pss_export_config.node_form_to_SBO:
+            self.sbo_term = pss_export_config.node_form_to_SBO[self.form]
+        else:
+            self.sbo_term = None
+
+    def __repr__(self):
+        return f"SpeciesType(name={self.name}, form={self.form})"
+
+
+class Species:
+    def __init__(self, name, form, compartment):
+        '''
+        Parameters
+        ----------
+        name: str
+            e.g. 'WRKY11'
+        form: str
+            e.g. 'protein', 'gene', 'complex'
+        compartment: str
+            e.g. 'cytoplasm', 'nucleus', 'extracellular'
+        '''
+
+        self.name = name
+        self.form = form
+
+        if ((compartment is None) or (compartment == 'unknown')):
+            # in case of cellular location, all nodes not assigned
+            # are put within cytoplasm
+            compartment = 'cytoplasm'
+        compartment = compartment.replace("putative:", "")
+
+        self.compartment = compartment
+
+        self.set_SBO_term()
+
+    def set_SBO_term(self):
+        """ Set the SBO term for the species type based on its form. """
+        if self.form in pss_export_config.node_form_to_SBO:
+            self.sbo_term = pss_export_config.node_form_to_SBO[self.form]
+        else:
+            self.sbo_term = None
+
+    def __repr__(self):
+        return f"Species(name={self.name}, form={self.form}, compartment={self.compartment})"
+
+#-------------------------------------
+#  Naming/identifier functions
+#-------------------------------------
+
+class IDTracker:
+    """ A class to track and create IDs for species and reactions.
+    This is used to ensure unique IDs are generated for each species and reaction.
+    """
+
+    def __init__(self):
+        self.species_ids = {}
+        self.reaction_ids = {}
+
+        self.species_types_ids = {}
+        self.compartment_ids = {}
+
+        self.counters = {
+            'species_type': 0,
+            'species':0,
+            'reaction': 0,
+            'compartment': 0,
+        }
+
+    def get_species_id(self, species):
+        '''
+        Returns the ID of a species.
+        If the species already has an ID, it returns that ID and a status of 1.
+        If the species does not have an ID, it creates a new ID,
+        and returns the new ID with a status of 0.
+        '''
+        if (id_ := self.species_ids.get((species.name, species.form, species.compartment))) is not None:
+            return id_, 1
+        return self.create_species_id(species), 0
+
+    def get_reaction_id(self, reaction):
+        return self.reaction_ids.get(reaction.id)
+
+    def get_species_type_id(self, species_type):
+        if (id_ := self.species_types_ids.get((species_type.name, species_type.form))) is not None:
+            return id_, 1
+        return self.create_species_types_id(species_type), 0
+
+    def get_compartment_id(self, compartment):
+        '''
+        Returns the ID of a compartment.
+        If the compartment already has an ID, it returns that ID and a status of 1.
+        If the compartment does not have an ID, it creates a new ID,
+        and returns the new ID with a status of 0.
+        '''
+        if (id_ := self.compartment_ids.get(compartment)) is not None:
+            return id_, 1
+        # create a new compartment ID
+        return self.create_compartment_id(compartment), 0
+
+    def set_species_id(self, species, id_):
+        self.species_ids[(species.name, species.form, species.compartment)] = id_
+        self.counters['species'] += 1
+
+    def set_reaction_id(self, reaction, id_):
+        self.reaction_ids[reaction.id] = id_
+        self.counters['reaction'] += 1
+
+    def set_species_type_id(self, species_type, id_):
+        self.species_types_ids[species_type] = id_
+        self.counters['species_type'] += 1
+
+    def set_compartment_id(self, compartment, id_):
+        self.compartment_ids[compartment] = id_
+        self.counters['compartment'] += 1
+
+    @staticmethod
+    def get_display_label(name):
+        m = re.match(r"(.*)\[(.*)\]$", name)
+        if m:
+            new_name = m.groups()[0]
+        else:
+            new_name = name
+
+        return new_name
+
+    @staticmethod
+    def remove_nonalphanum(name):
+        ''' Remove non-alphanumeric characters from a string.
+        Replace them with an underscore.
+        This is used to create unique IDs.
+        '''
+        return re.sub('[^0-9a-zA-Z_]+', '', name)
+
+    def create_species_id(self, species):
+        ''' Make a unique, short node id
+        '''
+
+        id_ = f"s_{IDTracker.remove_nonalphanum(IDTracker.get_display_label(species.name))}"\
+              f"_{pss_export_config.compartment_to_short[species.compartment]}"\
+              f"_{pss_export_config.node_form_to_short[species.form]}"
+
+        # make sure ID does not exist in self.species_ids
+        while id_ in self.species_ids.values():
+            id_ += '_1'
+
+        return id_
+
+    def create_species_types_id(self, species_type):
+        ''' Make a unique, short species type id
+        '''
+
+        id_ = f"{IDTracker.get_display_label(species_type.name)}"\
+              f"_{pss_export_config.node_form_to_short[species_type.form]}"
+
+        # make sure ID does not exist in self.species_types_ids
+        while id_ in self.species_types_ids.values():
+            id_ += '_1'
+
+        return id_
+
+    def create_compartment_id(self, compartment):
+        ''' Make a unique, short compartment id
+        '''
+
+        id_ = f"c_{pss_export_config.compartment_to_short[compartment]}"
+
+        # make sure ID does not exist in self.compartment_ids
+        while id_ in self.compartment_ids.values():
+            id_ += '_1'
+
+        return id_

@@ -2,9 +2,7 @@ from libsbml import (SBMLDocument, writeSBMLToFile, writeSBMLToString,
                     LIBSBML_OPERATION_SUCCESS, OperationReturnValue_toString,
                     CVTerm, BIOLOGICAL_QUALIFIER, BQB_IS_DESCRIBED_BY)
 
-from .utils import IDTracker, SpeciesType, Species, Reaction, pss_export_config
-
-
+from ..entity_classes import IDTracker, Species
 
 SBML_LEVEL = 3
 SBML_VERSION = 2
