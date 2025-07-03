@@ -149,11 +149,13 @@ class PSSAdapter():
             reaction = Reaction(
                 reaction_id,
                 reaction_properties['reaction_type'],
-                reaction_properties,
+                reaction_properties
             )
 
             edge_list = self.reaction_paths[reaction_id]
-            sbml.add_reaction(reaction, edge_list)
+            reaction.add_edges(edge_list)
+
+            sbml.add_reaction(reaction)
 
         return sbml.write(filename)
 

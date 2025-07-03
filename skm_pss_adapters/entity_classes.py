@@ -10,7 +10,7 @@ from .config import pss_export_config
 #-------------------------------------
 
 class Reaction:
-    def __init__(self, reaction_id, reaction_type, reaction_properties):
+    def __init__(self, reaction_id, reaction_type, reaction_properties, include_conditions=False):
         self.id = reaction_id
         self.reaction_id = reaction_id
         self.reaction_type = reaction_type
@@ -28,6 +28,49 @@ class Reaction:
         self.modifiers = []
 
         self.set_SBO_term()
+
+        # settings for preparing reactions
+        self.include_conditions = include_conditions
+
+    def add_edges(self, edge_list):
+
+        for path in edge_list:
+
+            edge = path.relationships[0]
+            edge_type = edge.type # edges only have 1 type
+
+            if edge_type in ['SUBSTRATE', 'TRANSLOCATE_FROM']:
+
+                # (1) source is SUBSTRATE
+                key = 'source'
+                name = edge.start_node['name']
+                location = edge[f'{key}_location']
+                form = edge[f'{key}_form']
+                self.add_substrate(Species(name, form, location))
+
+            elif edge_type in ['PRODUCT', 'TRANSLOCATE_TO']:
+
+                # (2) target is PRODUCT
+                key = 'target'
+                name = edge.end_node['name']
+                location = edge[f'{key}_location']
+                form = edge[f'{key}_form']
+                self.add_product(Species(name, form, location))
+
+            elif edge_type in  ['INHIBITS',  'ACTIVATES']:
+
+                # (1) source is MODIFIER
+                key = 'source'
+                name = edge.start_node['name']
+                location = edge[f'{key}_location']
+                form = edge[f'{key}_form']
+                if form == "condition" and not self.include_conditions:
+                    continue
+                self.add_modifier(Species(name, form, location))
+
+            else:
+                # current_app.logger.info(f"{edge_type}, {reaction_id}")
+                print(f"Reaction: {edge_type}, {self.reaction_id}")
 
     def set_SBO_term(self):
         """ Set the SBO term for the reaction based on its type. """

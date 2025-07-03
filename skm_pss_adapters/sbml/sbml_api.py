@@ -204,7 +204,7 @@ class SBML(SBMLDocument, IDTracker):
 
         return check(status, "add note to node")
 
-    def add_reaction(self, reaction, edge_list):
+    def add_reaction(self, reaction):
 
         # each reaction has ~4 nodes and ~3 arcs
         # substrate 1/+, product 1/+, process 1, modifier 1/+ nodes
@@ -215,45 +215,6 @@ class SBML(SBMLDocument, IDTracker):
 
         # (1) create reaction object
         rxn = self.create_reaction(reaction)
-
-
-        for path in edge_list:
-
-            edge = path.relationships[0]
-            edge_type = edge.type # edges only have 1 type
-
-            if edge_type in ['SUBSTRATE', 'TRANSLOCATE_FROM']:
-
-                # (1) source is SUBSTRATE
-                key = 'source'
-                name = edge.start_node['name']
-                location = edge[f'{key}_location']
-                form = edge[f'{key}_form']
-                reaction.add_substrate(Species(name, form, location))
-
-            elif edge_type in ['PRODUCT', 'TRANSLOCATE_TO']:
-
-                # (2) target is PRODUCT
-                key = 'target'
-                name = edge.end_node['name']
-                location = edge[f'{key}_location']
-                form = edge[f'{key}_form']
-                reaction.add_product(Species(name, form, location))
-
-            elif edge_type in  ['INHIBITS',  'ACTIVATES']:
-
-                # (1) source is MODIFIER
-                key = 'source'
-                name = edge.start_node['name']
-                location = edge[f'{key}_location']
-                form = edge[f'{key}_form']
-                if form == "condition":
-                    continue
-                reaction.add_modifier(Species(name, form, location))
-
-            else:
-                # current_app.logger.info(f"{edge_type}, {reaction_id}")
-                print(f"SBML: {edge_type}, {reaction.reaction_id}")
 
         '''
                       (modifier)
