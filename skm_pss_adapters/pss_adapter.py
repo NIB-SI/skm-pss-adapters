@@ -106,27 +106,28 @@ class PSSAdapter():
         self.reaction_pathways = self.graph.run_query(
             _collect_reaction_pathways)
 
-        def _get_all_reaction_paths(tx, reaction_ids):
+        def _get_reactions_and_paths(tx, reaction_ids):
             cy = '''
                 UNWIND $reaction_ids as id
                 WITH id
                 MATCH p=(r:Reaction)-[]-()
                 WHERE r.reaction_id=id
                 RETURN  id AS reaction_id,
-                        r.reaction_type AS reaction_type,
-                        r.reaction_effect AS reaction_effect,
-                        r.reaction_mechanism AS reaction_mechanism,
-                        r.external_links AS external_links,
-                        r.species AS species,
+                        r AS reaction,
                         collect(p) AS path
                 '''
             result = tx.run(cy, reaction_ids=reaction_ids)
             return [r for r in result]
 
+        reaction_data = self.graph.run_query(_get_reactions_and_paths, self.all_reactions)
+
         self.reaction_paths = {
-            d['reaction_id']: d
-            for d in self.graph.run_query(_get_all_reaction_paths,
-                                          self.all_reactions)
+            d['reaction_id']: d['path']
+            for d in reaction_data
+        }
+        self.reaction_properties = {
+            d['reaction_id']: d['reaction']
+            for d in reaction_data
         }
 
     def create_sbml(self, access='public', filename=None):
@@ -141,18 +142,18 @@ class PSSAdapter():
 
         for reaction_id in reaction_list:
             print(reaction_id)
-            reaction = self.reaction_paths[reaction_id]
+            reaction_properties = self.reaction_properties[reaction_id]
+            # print('reaction_properties: ', reaction_properties)
 
             # create reaction object
-            reaction_ = Reaction(
+            reaction = Reaction(
                 reaction_id,
-                reaction['reaction_type'],
-                reaction_mechanism=reaction.get('reaction_mechanism', None),
-                external_links=reaction.get('external_links', [])
+                reaction_properties['reaction_type'],
+                reaction_properties,
             )
 
-            edge_list = reaction['path']
-            sbml.add_reaction(reaction_, edge_list)
+            edge_list = self.reaction_paths[reaction_id]
+            sbml.add_reaction(reaction, edge_list)
 
         return sbml.write(filename)
 

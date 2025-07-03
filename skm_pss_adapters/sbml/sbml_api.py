@@ -153,7 +153,7 @@ class SBML(SBMLDocument, IDTracker):
         return id_
 
     def create_reaction(self, reaction):
-        ''' Create SBML "Reaction"
+        ''' Create SBML "Reaction" in the model
         Returns the reaction itself, not the identifier '''
 
         rxn = self.sbml_model.createReaction()
@@ -167,22 +167,42 @@ class SBML(SBMLDocument, IDTracker):
         rxn.setReversible(False)
         rxn.setFast(False)
 
-        print(f"SBML: {reaction.reaction_id}, external links: {reaction.external_links}")
         if reaction.external_links:
             for link in reaction.external_links:
                 SBML.add_annotation(rxn, link)
-                print(f"SBML: {reaction.reaction_id}, annotation added: {link}")
+                # print(f"SBML: {reaction.reaction_id}, annotation added: {link}")
+
+        if reaction.evidence_sentence:
+            SBML.add_note(rxn, reaction.evidence_sentence)
+            # print(f"SBML: {reaction.reaction_id}, note added: {reaction.evidence_sentence}")
+
         return rxn
 
     @staticmethod
-    def add_annotation(rxn, link):
-        ''' Add an annotation to a reaction '''
+    def add_annotation(node, link):
+        ''' Add an annotation to a node (reaction or species)  '''
 
         cv = CVTerm(BIOLOGICAL_QUALIFIER)
         cv.setBiologicalQualifierType(BQB_IS_DESCRIBED_BY)
         cv.addResource(f"http://identifiers.org/{link.strip()}")
 
-        rxn.addCVTerm(cv)
+        status = node.addCVTerm(cv)
+        return check(status, "add annotation to node")
+
+    @staticmethod
+    def add_note(node, note):
+        ''' Add a note to a node (reaction or species) '''
+
+        if not note:
+            return
+
+        note = f"<body xmlns='http://www.w3.org/1999/xhtml'><p>{note}</p></body>"
+        if node.isSetNotes():
+            status = node.appendNotes(note)
+        else:
+            status = node.setNotes(note)
+
+        return check(status, "add note to node")
 
     def add_reaction(self, reaction, edge_list):
 
@@ -192,6 +212,10 @@ class SBML(SBMLDocument, IDTracker):
         if reaction.reaction_type == 'unknown':
             # current_app.logger.info(f"{reaction_id}, undefined reaction type")
             print(f"SBML: {reaction.reaction_id}, unknown reaction type")
+
+        # (1) create reaction object
+        rxn = self.create_reaction(reaction)
+
 
         for path in edge_list:
 
@@ -239,9 +263,6 @@ class SBML(SBMLDocument, IDTracker):
                           o
         (substrate)----[process]---->(product)
         '''
-
-        # (1) reaction
-        rxn = self.create_reaction(reaction)
 
         # (2) substrate glyphs and arcs
         # (substrate)-[consumption]->(reaction)

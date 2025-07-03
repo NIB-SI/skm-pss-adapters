@@ -10,12 +10,19 @@ from .config import pss_export_config
 #-------------------------------------
 
 class Reaction:
-    def __init__(self, reaction_id, reaction_type, reaction_mechanism=None, external_links=None):
+    def __init__(self, reaction_id, reaction_type, reaction_properties):
         self.id = reaction_id
         self.reaction_id = reaction_id
         self.reaction_type = reaction_type
-        self.reaction_mechanism = reaction_mechanism
-        self.external_links = external_links if external_links is not None else []
+
+        # string attributes
+        for attr in ['reaction_mechanism', 'evidence_sentence', 'reaction_effect']:
+            setattr(self, attr, reaction_properties.get(attr, None))
+
+        # list attributes
+        for attr in ['external_links']:
+            setattr(self, attr, reaction_properties.get(attr, []))
+
         self.substrates = []
         self.products = []
         self.modifiers = []
