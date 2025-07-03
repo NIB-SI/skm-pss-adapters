@@ -27,12 +27,12 @@ class PSSAdapter():
         - *JSON (for API)
     '''
 
-    def __init__(self, graph):
+    def __init__(self, graph, include_genes=False):
         '''
         Constructor for PSSAdapter class.
         '''
-
         self.graph = graph
+        self.include_genes = include_genes
 
         # TODO Create list of reactions to be exported:
         #   if reactions is defined, limit to list of reactions
@@ -40,10 +40,8 @@ class PSSAdapter():
 
         self.collect()
 
-
-
     def collect(self):
-        '''Collect reaction list and pathway annotations (all reusable stuff)
+        '''Collect reaction list and pathway annotations (all reusable between formats)
             Limit to reactions in the PATHWAYS attr
             Limit to reactions in REACTIONS attr
         '''
@@ -149,7 +147,8 @@ class PSSAdapter():
             reaction = Reaction(
                 reaction_id,
                 reaction_properties['reaction_type'],
-                reaction_properties
+                reaction_properties,
+                include_genes=self.include_genes,
             )
 
             edge_list = self.reaction_paths[reaction_id]

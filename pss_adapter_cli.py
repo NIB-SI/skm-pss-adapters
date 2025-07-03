@@ -16,7 +16,8 @@ def cli():
 @click.option("--access",  default='public', help="Use public access data.")
 @click.option("--neo4j-uri", default="bolt://localhost:7687", help="Neo4j connection URI.")
 @click.option("-v", "--verbose", is_flag=True, help="Enable verbose output.")
-def to_sbml(access, neo4j_uri, filename, verbose):
+@click.option("--include_genes", is_flag=True, help="Include genes as species (transcription reactions).")
+def to_sbml(access, neo4j_uri, filename, verbose, include_genes):
     """
     Export model to SBML.
 
@@ -37,7 +38,7 @@ def to_sbml(access, neo4j_uri, filename, verbose):
 
         # connect to pSS in neo4j:
         graph = Graph(neo4j_uri)
-        adapter = PSSAdapter(graph)
+        adapter = PSSAdapter(graph, include_genes=include_genes)
 
         adapter.create_sbml(filename=filename, access=access)
         

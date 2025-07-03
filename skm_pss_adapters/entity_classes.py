@@ -5,12 +5,14 @@
 import re
 from .config import pss_export_config
 
+from .reaction_definitions import reaction_classes
+
 #-------------------------------------
 #  Helper classes (for nodes and reactions)
 #-------------------------------------
 
 class Reaction:
-    def __init__(self, reaction_id, reaction_type, reaction_properties, include_conditions=False):
+    def __init__(self, reaction_id, reaction_type, reaction_properties, include_conditions=False, include_genes=False):
         self.id = reaction_id
         self.reaction_id = reaction_id
         self.reaction_type = reaction_type
@@ -31,6 +33,7 @@ class Reaction:
 
         # settings for preparing reactions
         self.include_conditions = include_conditions
+        self.include_genes = include_genes
 
     def add_edges(self, edge_list):
 
@@ -40,6 +43,10 @@ class Reaction:
             edge_type = edge.type # edges only have 1 type
 
             if edge_type in ['SUBSTRATE', 'TRANSLOCATE_FROM']:
+
+                if self.reaction_type in reaction_classes.TRANSCRIPTIONAL_TRANSLATIONAL and not self.include_genes:
+                    continue
+                    # TODO handle transcription and translation reactions differently
 
                 # (1) source is SUBSTRATE
                 key = 'source'
