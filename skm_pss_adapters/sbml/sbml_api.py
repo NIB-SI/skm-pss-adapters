@@ -214,6 +214,10 @@ class SBML(SBMLDocument, IDTracker):
             print(f"SBML: {reaction.reaction_id}, unknown reaction type")
 
         # (1) create reaction object
+        if reaction.reaction_id in self.reaction_ids:
+            print(f"SBML: {reaction.reaction_id}, already exists")
+            return -1
+
         rxn = self.create_reaction(reaction)
 
         '''
