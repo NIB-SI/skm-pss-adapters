@@ -171,8 +171,8 @@ class Species:
 #-------------------------------------
 
 class IDTracker:
-    """ A class to track and create IDs for species and reactions.
-    This is used to ensure unique IDs are generated for each species and reaction.
+    """ A class to track and create IDs for species, species_types, and reactions,
+    to ensure unique IDs are generated for each.
     """
 
     def __init__(self):
@@ -279,7 +279,7 @@ class IDTracker:
         self.counters['reaction'] += 1
 
     def set_species_type_id(self, species_type, id_):
-        self.species_types_ids[species_type] = id_
+        self.species_types_ids[(species_type.name, species_type.form)] = id_
         self.counters['species_type'] += 1
 
     def set_compartment_id(self, compartment, id_):
@@ -322,7 +322,7 @@ class IDTracker:
         ''' Make a unique, short species type id
         '''
 
-        id_ = f"{IDTracker.get_display_label(species_type.name)}"\
+        id_ = f"s_{IDTracker.remove_nonalphanum(IDTracker.get_display_label(species_type.name))}"\
               f"_{pss_export_config.node_form_to_short[species_type.form]}"
 
         # make sure ID does not exist in self.species_types_ids

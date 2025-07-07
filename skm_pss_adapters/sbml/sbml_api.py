@@ -2,9 +2,9 @@ from libsbml import (SBMLDocument, writeSBMLToFile, writeSBMLToString,
                     LIBSBML_OPERATION_SUCCESS, OperationReturnValue_toString,
                     CVTerm, BIOLOGICAL_QUALIFIER, BQB_IS_DESCRIBED_BY)
 
-from ..entity_classes import IDTracker, Species
+from ..entity_classes import IDTracker, Species, SpeciesType
 
-SBML_LEVEL = 3
+SBML_LEVEL = 2
 SBML_VERSION = 2
 OUTSIDE_COMPARTMENTS = ['cytoplasm', 'extracellular']
 
@@ -74,17 +74,17 @@ class SBML(SBMLDocument, IDTracker):
 
         else:
             typ = self.sbml_model.createSpeciesType()
+            check(typ, f'create species type {id_}\n')
 
-            check(typ, f'create species type {id_}')
+            check(typ.setId(id_), f'set species type id {id_}\n')
+            self.set_species_type_id(species_type, id_)
 
-            typ.setId(id_)
             typ.setName(f'{species_type.name} {species_type.form}')
-            typ.setConstant(False)
+            # typ.setConstant(False)
 
             if species_type.sbo_term:
                 typ.setSBOTerm(species_type.sbo_term)
 
-            self.set_species_type_id(species_type, id_)
 
         return id_
 
@@ -107,11 +107,11 @@ class SBML(SBMLDocument, IDTracker):
             sp.setId(id_)
             sp.setName(species.name)
 
-            # if SBML_VERSION == 2:
+            if (SBML_VERSION >= 2) and (SBML_LEVEL == 2):
             # TODO -- Error: Error: sbml: LibSBML returned a null value trying to create species type VPg_p.
-            #     species_type = SpeciesType(name=species.name, form=species.form)
-            #     specie_type_identifier = self.get_species_type(species_type)
-            #     sp.setSpeciesType(specie_type_identifier)
+                species_type = SpeciesType(name=species.name, form=species.form)
+                specie_type_identifier = self.get_species_type(species_type)
+                sp.setSpeciesType(specie_type_identifier)
 
             if species.sbo_term:
                 sp.setSBOTerm(species.sbo_term)
@@ -159,6 +159,8 @@ class SBML(SBMLDocument, IDTracker):
         rxn = self.sbml_model.createReaction()
         rxn.setId(reaction.reaction_id)
 
+        self.set_reaction_id(reaction, reaction.reaction_id)
+
         rxn.setMetaId(f"metaid_skm_{reaction.reaction_id}")
 
         if reaction.sbo_term:
@@ -167,6 +169,7 @@ class SBML(SBMLDocument, IDTracker):
         rxn.setReversible(False)
         rxn.setFast(False)
 
+        SBML.add_annotation(rxn, f"skm:{reaction.reaction_id}")
         if reaction.external_links:
             for link in reaction.external_links:
                 SBML.add_annotation(rxn, link)
@@ -184,7 +187,7 @@ class SBML(SBMLDocument, IDTracker):
 
         cv = CVTerm(BIOLOGICAL_QUALIFIER)
         cv.setBiologicalQualifierType(BQB_IS_DESCRIBED_BY)
-        cv.addResource(f"http://identifiers.org/{link.strip()}")
+        cv.addResource(f"http://identifiers.org/{link.strip().replace(" ", "")}")
 
         status = node.addCVTerm(cv)
         return check(status, "add annotation to node")
