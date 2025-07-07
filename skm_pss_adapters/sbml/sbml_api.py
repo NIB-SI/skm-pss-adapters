@@ -196,7 +196,7 @@ class SBML(SBMLDocument, IDTracker):
         if not note:
             return
 
-        note = f"<body xmlns='http://www.w3.org/1999/xhtml'><p>{note}</p></body>"
+        note = f"<body xmlns='http://www.w3.org/1999/xhtml'><p>note:{note}</p></body>"
         if node.isSetNotes():
             status = node.appendNotes(note)
         else:
