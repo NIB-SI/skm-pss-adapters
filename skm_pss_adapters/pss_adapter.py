@@ -128,7 +128,7 @@ class PSSAdapter():
             for d in reaction_data
         }
 
-    def create_sbml(self, access='public', filename=None):
+    def create_sbml(self, access='public', filename=None, entities_table=None):
         '''  '''
 
         if access == 'public':
@@ -155,6 +155,14 @@ class PSSAdapter():
             reaction.add_edges(edge_list)
 
             sbml.add_reaction(reaction)
+
+        print("Number of species in SBML: ", len(sbml.species_ids))
+        print("Number of species types in SBML: ", len(sbml.species_types_ids))
+        print("Number of compartments in SBML: ", len(sbml.compartment_ids))
+        print("Number of reactions in SBML: ", len(sbml.reaction_ids))
+
+        if entities_table:
+            sbml.write_entities_table(entities_table)
 
         return sbml.write(filename)
 

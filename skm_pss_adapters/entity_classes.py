@@ -189,6 +189,56 @@ class IDTracker:
             'compartment': 0,
         }
 
+
+    def write_entities_table(self, filename, delim="\t"):
+        """ Writes a table of all entities with their IDs and attributes. """
+
+        with open(filename, 'w') as f:
+            f.write(f"id{delim}type{delim}name{delim}form{delim}compartment\n")
+
+            for (name, form, compartment), id_ in self.species_ids.items():
+                s = delim.join([
+                    id_,
+                    'species',
+                    name,
+                    form,
+                    compartment,
+                ])
+                f.write(f"{s}\n")
+
+            for (name, form), id_ in self.species_types_ids.items():
+                s = delim.join([
+                    id_,
+                    'species_type',
+                    name,
+                    form,
+                    '',
+                    ''
+                ])
+                f.write(f"{s}\n")
+
+            for compartment, id_ in self.compartment_ids.items():
+                s = delim.join([
+                    id_,
+                    'compartment',
+                    '',
+                    '',
+                    compartment
+                ])
+                f.write(f"{s}\n")
+
+            for reaction_id, id_ in self.reaction_ids.items():
+                s = delim.join([
+                    id_,
+                    'reaction',
+                    reaction_id,
+                    '',
+                    ''
+                ])
+                f.write(f"{s}\n")
+
+            return filename
+
     def get_species_id(self, species):
         '''
         Returns the ID of a species.

@@ -17,7 +17,8 @@ def cli():
 @click.option("--neo4j-uri", default="bolt://localhost:7687", help="Neo4j connection URI.")
 @click.option("-v", "--verbose", is_flag=True, help="Enable verbose output.")
 @click.option("--include_genes", is_flag=True, help="Include genes as species (transcription reactions).")
-def to_sbml(access, neo4j_uri, filename, verbose, include_genes):
+@click.option("--entities_table", default=None, type=click.Path(), help="Path to also export a table of entities in model.")
+def to_sbml(access, neo4j_uri, filename, verbose, include_genes, entities_table):
     """
     Export model to SBML.
 
@@ -40,7 +41,7 @@ def to_sbml(access, neo4j_uri, filename, verbose, include_genes):
         graph = Graph(neo4j_uri)
         adapter = PSSAdapter(graph, include_genes=include_genes)
 
-        adapter.create_sbml(filename=filename, access=access)
+        adapter.create_sbml(filename=filename, access=access, entities_table=entities_table)
         
         if verbose:
             click.secho("SBML export complete.", fg="green")
