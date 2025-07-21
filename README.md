@@ -44,3 +44,18 @@ Create the SBML file using the CLI:
 ```bash
 python pss_adapter_cli.py to-sbml output.sbml --access public
 ```
+
+To add equations to the SBML file, you can use SBMLsqueezer from 
+https://github.com/draeger-lab/SBMLsqueezer, e.g.
+```bash
+java -jar  /path..to..jar/SBMLsqueezer-2.2.jar --sbml-in-file output.sbml  --sbml-out-file output-squeezed
+```
+
+Known limitations and issues:
+- The SBML file does not contain equations for the reactions.
+	- You can add the equations using SBMLsqueezer as described above.
+- Continuous updates to the PSS database means that the model may not be connected or completely consistent with modelling.
+- Some molecules may be disconnected in the SBML file, for example if:
+	- They occur in multiple compartments, but are not connected by a transport reaction.
+	- A protein is formed by a translation reaction, but the protein is not "activated" by an "activation" reaction.
+	- A complex is formed by a reaction, but the complex is not "activated" by an "activation" reaction.
