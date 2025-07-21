@@ -4,7 +4,7 @@ from libsbml import (SBMLDocument, writeSBMLToFile, writeSBMLToString,
 
 from ..entity_classes import IDTracker, Species, SpeciesType
 
-SBML_LEVEL = 2
+SBML_LEVEL = 3
 SBML_VERSION = 2
 OUTSIDE_COMPARTMENTS = ['cytoplasm', 'extracellular']
 
