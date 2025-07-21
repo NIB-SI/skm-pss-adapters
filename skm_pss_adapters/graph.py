@@ -3,12 +3,39 @@ Graph class for Neo4j database interaction.
 This class provides methods to connect to a Neo4j database
 and execute queries.
 '''
+import os
+from dotenv import dotenv_values
 
 from neo4j import GraphDatabase
 
 class Graph:
 
-    def __init__(self, uri='bolt://neo4j:7687', user='neo4j', pwd='password'):
+    def __init__(self, uri=None, user=None, pwd=None):
+        '''
+        Initialize the Graph class.
+        If no parameters are provided, look for a .env file
+        load the database connection parameters from it.
+        '''
+
+        # if any of the parameters are missing, look for a .env file
+        if uri is None or user is None or pwd is None:
+
+            # if an env file exists in the current folder, load it
+            if os.path.exists('.env'):
+                config = dotenv_values(".env")
+                if uri is None:
+                    uri = config.get('MY_NEO4J_URI', None)
+                if user is None:
+                    user = config.get('MY_NEO4J_USER', None)
+                if pwd is None:
+                    pwd = config.get('MY_NEO4J_PASSWORD', None)
+
+        # if any of the parameters are still missing, raise an error
+        if uri is None or user is None or pwd is None:
+            raise ValueError("Missing database connection parameters: uri, user, and pwd are required.")
+
+
+        # connect to the database
         # wait 30s for db to startup TODO
         self.driver = GraphDatabase.driver(uri, auth=(user, pwd))
 
