@@ -82,10 +82,11 @@ class Reaction:
     def set_SBO_term(self):
         """ Set the SBO term for the reaction based on its type. """
         if self.reaction_type in pss_export_config.reaction_type_to_SBO:
-            self.sbo_term = pss_export_config.reaction_type_to_SBO[self.reaction_type]
+            self.sbo_term = int(pss_export_config.reaction_type_to_SBO[self.reaction_type])
         else:
             # TODO translation vs transcription based on  "reaction_mechanism"
             self.sbo_term = None
+        # print(self.reaction_type, self.sbo_term)
 
     def add_substrate(self, substrate):
         self.substrates.append(substrate)
@@ -119,10 +120,26 @@ class  SpeciesType:
 
         self.set_SBO_term()
 
+
+    def set_id(self, idtracker=None):
+        ''' Make a unique, short species type id
+        '''
+
+        id_ = f"s_{IDTracker.remove_nonalphanum(IDTracker.get_display_label(self.name))}"\
+              f"_{pss_export_config.node_form_to_short[self.form]}"
+
+        # make sure ID does not exist in idtracker.species_types_ids
+        while id_ in idtracker.species_types_ids.values():
+            id_ += '_1'
+
+        self.id = id_
+
+        return id_
+
     def set_SBO_term(self):
         """ Set the SBO term for the species type based on its form. """
         if self.form in pss_export_config.node_form_to_SBO:
-            self.sbo_term = pss_export_config.node_form_to_SBO[self.form]
+            self.sbo_term = int(pss_export_config.node_form_to_SBO[self.form])
         else:
             self.sbo_term = None
 
@@ -156,10 +173,24 @@ class Species:
 
         self.set_SBO_term()
 
+    def set_id(self, idtracker=None):
+        id_ = f"s_{IDTracker.remove_nonalphanum(IDTracker.get_display_label(self.name))}"\
+              f"_{pss_export_config.compartment_to_short[self.compartment]}"\
+              f"_{pss_export_config.node_form_to_short[self.form]}"
+
+        if idtracker:
+            # make sure ID does not exist in idtracker.species_ids
+            while id_ in idtracker.species_ids.values():
+                id_ += '_1'
+
+        self.id = id_
+
+        return id_
+
     def set_SBO_term(self):
         """ Set the SBO term for the species type based on its form. """
         if self.form in pss_export_config.node_form_to_SBO:
-            self.sbo_term = pss_export_config.node_form_to_SBO[self.form]
+            self.sbo_term = int(pss_export_config.node_form_to_SBO[self.form])
         else:
             self.sbo_term = None
 
@@ -242,13 +273,13 @@ class IDTracker:
     def get_species_id(self, species):
         '''
         Returns the ID of a species.
-        If the species already has an ID, it returns that ID and a status of 1.
+        If the species already has an ID in the tracker, it returns that ID and a status of 1.
         If the species does not have an ID, it creates a new ID,
         and returns the new ID with a status of 0.
         '''
         if (id_ := self.species_ids.get((species.name, species.form, species.compartment))) is not None:
             return id_, 1
-        return self.create_species_id(species), 0
+        return species.set_id(idtracker=self), 0
 
     def get_reaction_id(self, reaction):
         return self.reaction_ids.get(reaction.id)
@@ -256,7 +287,7 @@ class IDTracker:
     def get_species_type_id(self, species_type):
         if (id_ := self.species_types_ids.get((species_type.name, species_type.form))) is not None:
             return id_, 1
-        return self.create_species_types_id(species_type), 0
+        return species_type.set_id(idtracker=self), 0
 
     def get_compartment_id(self, compartment):
         '''
@@ -304,32 +335,6 @@ class IDTracker:
         '''
         return re.sub('[^0-9a-zA-Z_]+', '', name)
 
-    def create_species_id(self, species):
-        ''' Make a unique, short node id
-        '''
-
-        id_ = f"s_{IDTracker.remove_nonalphanum(IDTracker.get_display_label(species.name))}"\
-              f"_{pss_export_config.compartment_to_short[species.compartment]}"\
-              f"_{pss_export_config.node_form_to_short[species.form]}"
-
-        # make sure ID does not exist in self.species_ids
-        while id_ in self.species_ids.values():
-            id_ += '_1'
-
-        return id_
-
-    def create_species_types_id(self, species_type):
-        ''' Make a unique, short species type id
-        '''
-
-        id_ = f"s_{IDTracker.remove_nonalphanum(IDTracker.get_display_label(species_type.name))}"\
-              f"_{pss_export_config.node_form_to_short[species_type.form]}"
-
-        # make sure ID does not exist in self.species_types_ids
-        while id_ in self.species_types_ids.values():
-            id_ += '_1'
-
-        return id_
 
     def create_compartment_id(self, compartment):
         ''' Make a unique, short compartment id

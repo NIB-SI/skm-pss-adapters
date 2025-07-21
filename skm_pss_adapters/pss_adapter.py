@@ -156,10 +156,12 @@ class PSSAdapter():
 
             sbml.add_reaction(reaction)
 
+        print("-"*40)
         print("Number of species in SBML: ", len(sbml.species_ids))
         print("Number of species types in SBML: ", len(sbml.species_types_ids))
         print("Number of compartments in SBML: ", len(sbml.compartment_ids))
         print("Number of reactions in SBML: ", len(sbml.reaction_ids))
+        print("-"*40)
 
         if entities_table:
             sbml.write_entities_table(entities_table)

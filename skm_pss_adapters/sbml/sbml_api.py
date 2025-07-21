@@ -65,7 +65,7 @@ class SBML(SBMLDocument, IDTracker):
         return writeSBMLToFile(self, filename)
 
 
-    def get_species_type(self, species_type):
+    def get_sbml_species_type(self, species_type):
 
         id_, status =  self.get_species_type_id(species_type)
 
@@ -88,16 +88,15 @@ class SBML(SBMLDocument, IDTracker):
 
         return id_
 
-    def get_species(self, species):
+    def get_sbml_species(self, species):
         ''' Get a species node in SBML model. Create if it does not exist.
-
 
         Returns
         -------
             id: str
         '''
 
-        id_, status =  self.get_species_id(species)
+        id_, status =  self.get_species_id(species) # look up the id in the IDTracker
 
         if status == 1:
             pass
@@ -110,13 +109,13 @@ class SBML(SBMLDocument, IDTracker):
             if (SBML_VERSION >= 2) and (SBML_LEVEL == 2):
             # TODO -- Error: Error: sbml: LibSBML returned a null value trying to create species type VPg_p.
                 species_type = SpeciesType(name=species.name, form=species.form)
-                specie_type_identifier = self.get_species_type(species_type)
+                specie_type_identifier = self.get_sbml_species_type(species_type)
                 sp.setSpeciesType(specie_type_identifier)
 
             if species.sbo_term:
                 sp.setSBOTerm(species.sbo_term)
 
-            compartment_id = self.get_compartment(species.compartment)
+            compartment_id = self.get_sbml_compartment(species.compartment)
             sp.setCompartment(compartment_id)
 
             sp.setHasOnlySubstanceUnits(False)
@@ -124,10 +123,11 @@ class SBML(SBMLDocument, IDTracker):
             sp.setConstant(False)
 
             self.set_species_id(species, id_)
+            # print(f"SBML: species id: {species.name} --> {id_}", species.compartment, species.form, species.sbo_term)
 
         return id_
 
-    def get_compartment(self, compartment):
+    def get_sbml_compartment(self, compartment):
 
         id_, status =  self.get_compartment_id(compartment)
 
@@ -142,7 +142,7 @@ class SBML(SBMLDocument, IDTracker):
             comp.setConstant(True)
 
             if not (compartment in OUTSIDE_COMPARTMENTS):
-                cyto_identifier = self.get_compartment('cytoplasm')
+                cyto_identifier = self.get_sbml_compartment('cytoplasm')
                 print(compartment, cyto_identifier)
                 m = comp.setOutside(cyto_identifier)
                 check(m, "Set 'outside' of compartment")
@@ -152,7 +152,7 @@ class SBML(SBMLDocument, IDTracker):
         # print(f"SBML: compartment id: {compartment} --> {id_}")
         return id_
 
-    def create_reaction(self, reaction):
+    def create_sbml_reaction(self, reaction):
         ''' Create SBML "Reaction" in the model
         Returns the reaction itself, not the identifier '''
 
@@ -221,7 +221,7 @@ class SBML(SBMLDocument, IDTracker):
             print(f"SBML: {reaction.reaction_id}, already exists")
             return -1
 
-        rxn = self.create_reaction(reaction)
+        rxn = self.create_sbml_reaction(reaction)
 
         '''
                       (modifier)
@@ -235,7 +235,7 @@ class SBML(SBMLDocument, IDTracker):
         # (2) substrate glyphs and arcs
         # (substrate)-[consumption]->(reaction)
         for species in reaction.substrates:
-            id_ = self.get_species(species)
+            id_ = self.get_sbml_species(species)
             reactant = rxn.createReactant()
             reactant.setSpecies(id_)
             reactant.setStoichiometry(1)
@@ -244,7 +244,7 @@ class SBML(SBMLDocument, IDTracker):
         # (3) product glyphs and arcs
         # (reaction)-[production]->(product)
         for species in reaction.products:
-            id_ = self.get_species(species)
+            id_ = self.get_sbml_species(species)
             product = rxn.createProduct()
             product.setSpecies(id_)
             product.setStoichiometry(1)
@@ -253,7 +253,7 @@ class SBML(SBMLDocument, IDTracker):
         # (4) modifier glyphs and arcs
         # (modifier)-[modifies]->(reaction)
         for species in reaction.modifiers:
-            id_ = self.get_species(species)
+            id_ = self.get_sbml_species(species)
             modifier = rxn.createModifier()
             modifier.setSpecies(id_)
 
