@@ -1,10 +1,22 @@
 #!/usr/bin/env python3
 
 import click
+import functools
 
 from skm_pss_adapters.graph import Graph
 from skm_pss_adapters.pss_adapter import PSSAdapter
 
+
+
+def neo4j_common_params(func):
+    @click.option("--access",  default='public', help="Use public access data.")
+    @click.option("--neo4j-uri", default=None, help="Neo4j connection URI.")
+    @click.option("--neo4j-user", default=None, help="Neo4j username.")
+    @click.option("--neo4j-password", default=None, help="Neo4j password.")
+    @functools.wraps(func)
+    def wrapper(*args, **kwargs):
+        return func(*args, **kwargs)
+    return wrapper
 
 @click.group()
 def cli():
@@ -12,14 +24,11 @@ def cli():
     pass
 
 @cli.command()
+@neo4j_common_params
 @click.argument("filename", type=click.Path())
-@click.option("--access",  default='public', help="Use public access data.")
-@click.option("--neo4j-uri", default=None, help="Neo4j connection URI.")
-@click.option("--neo4j-user", default=None, help="Neo4j username.")
-@click.option("--neo4j-password", default=None, help="Neo4j password.")
 @click.option("-v", "--verbose", is_flag=True, help="Enable verbose output.")
-@click.option("--include_genes", is_flag=True, help="Include genes as species (transcription reactions).")
-@click.option("--entities_table", default=None, type=click.Path(), help="Path to also export a table of entities in model.")
+@click.option("--include-genes", is_flag=True, help="Include genes as species (transcription reactions).")
+@click.option("--entities-table", default=None, type=click.Path(), help="Path to also export a table of entities in model.")
 def to_sbml(access, neo4j_uri, neo4j_user, neo4j_password, filename, verbose, include_genes, entities_table):
     """
     Export model to SBML.
