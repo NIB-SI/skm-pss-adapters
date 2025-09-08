@@ -1,5 +1,19 @@
 # Necessary bits of information on PSS contents
 
+#--------------------------
+# Database schema
+#--------------------------
+
+relevant_labels:
+  - Complex
+  - Foreign
+  - Metabolite
+  - Process
+
+#--------------------------
+# Database content
+#--------------------------
+
 pathways:
   - Signalling:
     - Calcium

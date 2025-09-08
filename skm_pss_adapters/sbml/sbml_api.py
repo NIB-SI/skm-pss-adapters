@@ -53,19 +53,16 @@ class SBML(SBMLDocument, IDTracker):
         # start the SBML model
         self.sbml_model = self.createModel()
         check(self.sbml_model, 'create model')
-        status = self.sbml_model.setId('PSS TODO!!!')
-        if status != LIBSBML_OPERATION_SUCCESS:
-            # Do something to handle the error here.
-            print('SBML: Unable to set identifier on the Model object')
-
+        check(self.sbml_model.setId('PSSTODO'), 'set identifier on the Model object')
 
     def write(self, filename, replace_markup=True):
         if filename is None:
             return writeSBMLToString(self)
         return writeSBMLToFile(self, filename)
 
-
     def get_sbml_species_type(self, species_type):
+        ''' Get a species type node in SBML model. Create if it does not exist.
+        '''
 
         id_, status =  self.get_species_type_id(species_type)
 

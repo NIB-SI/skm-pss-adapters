@@ -34,10 +34,12 @@ class Graph:
         if uri is None or user is None or pwd is None:
             raise ValueError("Missing database connection parameters: uri, user, and pwd are required.")
 
-
         # connect to the database
-        # wait 30s for db to startup TODO
-        self.driver = GraphDatabase.driver(uri, auth=(user, pwd))
+        try:
+            print(f"Connecting to database at {uri} with user {user}")
+            self.driver = GraphDatabase.driver(uri, auth=(user, pwd))
+        except Exception as e:
+            raise ConnectionError(f"Failed to connect to the database: {e}")
 
     def close(self):
         self.driver.close()

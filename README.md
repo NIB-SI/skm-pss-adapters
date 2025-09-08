@@ -31,14 +31,18 @@ mv .env.example .env
 
 ## Usage
 
-Create environemnt with dependencies:
+Create environment with dependencies:
 
 ```bash
 mamba create -n pss-sbml conda-forge::neo4j-python-driver conda-forge::python-libsbml conda-forge::pyyaml conda-forge::click
 ```
 
-
 ### SBML:
+
+To view the CLI options:
+```bash
+python pss_adapter_cli.py to-sbml --help
+```
 
 Create the SBML file using the CLI:
 ```bash
@@ -59,3 +63,7 @@ Known limitations and issues:
 	- They occur in multiple compartments, but are not connected by a transport reaction.
 	- A protein is formed by a translation reaction, but the protein is not "activated" by an "activation" reaction.
 	- A complex is formed by a reaction, but the complex is not "activated" by an "activation" reaction.
+
+## TODOs
+
+- Make a TOML file for installing from pip and a requirements file with fixed dependency version for testing
