@@ -72,16 +72,15 @@ class SBML(SBMLDocument, IDTracker):
         else:
             typ = self.sbml_model.createSpeciesType()
             check(typ, f'create species type {id_}\n')
-
             check(typ.setId(id_), f'set species type id {id_}\n')
-            self.set_species_type_id(species_type, id_)
-
             typ.setName(f'{species_type.name} {species_type.form}')
             # typ.setConstant(False)
 
             if species_type.sbo_term:
                 typ.setSBOTerm(species_type.sbo_term)
 
+            self.set_species_type_id(species_type, id_)
+            species_type.set_id(id_)
 
         return id_
 
@@ -120,6 +119,7 @@ class SBML(SBMLDocument, IDTracker):
             sp.setConstant(False)
 
             self.set_species_id(species, id_)
+            species.set_id(id_)
             # print(f"SBML: species id: {species.name} --> {id_}", species.compartment, species.form, species.sbo_term)
 
         return id_
@@ -140,7 +140,6 @@ class SBML(SBMLDocument, IDTracker):
 
             if not (compartment in OUTSIDE_COMPARTMENTS):
                 cyto_identifier = self.get_sbml_compartment('cytoplasm')
-                print(compartment, cyto_identifier)
                 m = comp.setOutside(cyto_identifier)
                 check(m, "Set 'outside' of compartment")
 
@@ -175,6 +174,9 @@ class SBML(SBMLDocument, IDTracker):
         if reaction.evidence_sentence:
             SBML.add_note(rxn, reaction.evidence_sentence)
             # print(f"SBML: {reaction.reaction_id}, note added: {reaction.evidence_sentence}")
+
+        if reaction.export_notes:
+            SBML.add_note(rxn, reaction.export_notes)
 
         return rxn
 
@@ -253,4 +255,3 @@ class SBML(SBMLDocument, IDTracker):
             id_ = self.get_sbml_species(species)
             modifier = rxn.createModifier()
             modifier.setSpecies(id_)
-

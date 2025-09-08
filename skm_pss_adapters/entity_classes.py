@@ -12,7 +12,7 @@ from .reaction_definitions import reaction_classes
 #-------------------------------------
 
 class Reaction:
-    def __init__(self, reaction_id, reaction_type, reaction_properties, include_conditions=False, include_genes=False):
+    def __init__(self, reaction_id, reaction_type, reaction_properties, include_conditions=False, include_genes=False, export_notes=None):
         self.id = reaction_id
         self.reaction_id = reaction_id
         self.reaction_type = reaction_type
@@ -24,6 +24,11 @@ class Reaction:
         # list attributes
         for attr in ['external_links']:
             setattr(self, attr, reaction_properties.get(attr, []))
+
+        # export attribute
+        if export_notes is None:
+            export_notes = ""
+        self.export_notes = export_notes
 
         self.substrates = []
         self.products = []
@@ -120,20 +125,10 @@ class  SpeciesType:
 
         self.set_SBO_term()
 
-
-    def set_id(self, idtracker=None):
+    def set_id(self, id_):
         ''' Make a unique, short species type id
         '''
-
-        id_ = f"s_{IDTracker.remove_nonalphanum(IDTracker.get_display_label(self.name))}"\
-              f"_{pss_export_config.node_form_to_short[self.form]}"
-
-        # make sure ID does not exist in idtracker.species_types_ids
-        while id_ in idtracker.species_types_ids.values():
-            id_ += '_1'
-
         self.id = id_
-
         return id_
 
     def set_SBO_term(self):
@@ -173,18 +168,8 @@ class Species:
 
         self.set_SBO_term()
 
-    def set_id(self, idtracker=None):
-        id_ = f"s_{IDTracker.remove_nonalphanum(IDTracker.get_display_label(self.name))}"\
-              f"_{pss_export_config.compartment_to_short[self.compartment]}"\
-              f"_{pss_export_config.node_form_to_short[self.form]}"
-
-        if idtracker:
-            # make sure ID does not exist in idtracker.species_ids
-            while id_ in idtracker.species_ids.values():
-                id_ += '_1'
-
+    def set_id(self, id_):
         self.id = id_
-
         return id_
 
     def set_SBO_term(self):
@@ -206,7 +191,18 @@ class IDTracker:
     to ensure unique IDs are generated for each.
     """
 
-    def __init__(self):
+    def __init__(self, location=True, verbose=False):
+        '''
+        Parameters
+        ----------
+        location: bool
+            Whether to include location in species IDs.
+            Default is True.
+        '''
+
+        self.verbose = verbose
+        self.location = location
+
         self.species_ids = {}
         self.reaction_ids = {}
 
@@ -277,17 +273,67 @@ class IDTracker:
         If the species does not have an ID, it creates a new ID,
         and returns the new ID with a status of 0.
         '''
-        if (id_ := self.species_ids.get((species.name, species.form, species.compartment))) is not None:
+
+        if not self.location:
+            # ignore compartment for species ID by setting all of them to 'none'
+            compartment = 'none'
+        else:
+            compartment = species.compartment
+
+        if (id_ := self.species_ids.get((species.name, species.form, compartment))) is not None:
             return id_, 1
-        return species.set_id(idtracker=self), 0
+
+        id_ = f"s_{self.remove_nonalphanum(self.get_display_label(species.name))}"\
+              f"_{pss_export_config.compartment_to_short[compartment]}"\
+              f"_{pss_export_config.node_form_to_short[species.form]}"
+
+        # make sure ID does not exist in idtracker.species_ids
+        while id_ in self.species_ids.values():
+
+            if self.verbose:
+                # print all the species details to see why it possible duplicated
+                print(f"Duplicate species ID found: {id_} for species {species}")
+
+                # list the duplicated species
+                for (name, form, compartment), existing_id in self.species_ids.items():
+                    if existing_id == id_:
+                        print("Existing species with same ID:")
+                        print(f" - species.name: {name}")
+                        print(f" - species.form: {form}")
+                        print(f" - species.compartment: {compartment}")
+
+            id_ += '_1'
+
+        return id_, 0
 
     def get_reaction_id(self, reaction):
         return self.reaction_ids.get(reaction.id)
 
     def get_species_type_id(self, species_type):
+
         if (id_ := self.species_types_ids.get((species_type.name, species_type.form))) is not None:
             return id_, 1
-        return species_type.set_id(idtracker=self), 0
+
+        id_ = f"s_{IDTracker.remove_nonalphanum(IDTracker.get_display_label(self.name))}"\
+              f"_{pss_export_config.node_form_to_short[self.form]}"
+
+        # make sure ID does not exist in idtracker.species_types_ids
+        while id_ in self.species_types_ids.values():
+
+            if self.verbose:
+                # print all the species_type details to see why it possible duplicated
+                print(f"Duplicate species type ID found: {id_} for species type {species_type}")
+
+                # list the duplicated species types
+                for (name, form), existing_id in self.species_types_ids.items():
+                    if existing_id == id_:
+                        print("Existing species type with same ID:")
+                        print(f" - species_type.name: {name}")
+                        print(f" - species_type.form: {form}")
+
+            id_ += '_1'
+
+        return id_, 0
 
     def get_compartment_id(self, compartment):
         '''
@@ -302,7 +348,14 @@ class IDTracker:
         return self.create_compartment_id(compartment), 0
 
     def set_species_id(self, species, id_):
-        self.species_ids[(species.name, species.form, species.compartment)] = id_
+
+        if not self.location:
+            # ignore compartment for species ID by setting all of them to 'none'
+            compartment = 'none'
+        else:
+            compartment = species.compartment
+
+        self.species_ids[(species.name, species.form, compartment)] = id_
         self.counters['species'] += 1
 
     def set_reaction_id(self, reaction, id_):
@@ -334,7 +387,6 @@ class IDTracker:
         This is used to create unique IDs.
         '''
         return re.sub('[^0-9a-zA-Z_]+', '', name)
-
 
     def create_compartment_id(self, compartment):
         ''' Make a unique, short compartment id

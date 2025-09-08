@@ -37,6 +37,11 @@ Create environment with dependencies:
 mamba create -n pss-sbml conda-forge::neo4j-python-driver conda-forge::python-libsbml conda-forge::pyyaml conda-forge::click
 ```
 
+If using the model fixes module, also install the following dependecies:
+```bash 
+pip install pandas networkx rich matplotlib
+```
+
 ### SBML:
 
 To view the CLI options:
@@ -47,6 +52,12 @@ python pss_adapter_cli.py to-sbml --help
 Create the SBML file using the CLI:
 ```bash
 python pss_adapter_cli.py to-sbml output.sbml --access public
+```
+
+
+Using the model-fixing functions:
+```bash
+python pss_adapter_cli.py to-sbml output-model-fixes.sbml --access public --model-fixes-identify  --model-fixes-apply
 ```
 
 To add equations to the SBML file, you can use SBMLsqueezer from 

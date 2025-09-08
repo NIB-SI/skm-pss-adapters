@@ -1,5 +1,15 @@
 # Settings and mappings for exporting PSS from db to other formats
 
+
+#-------------------------
+# Export settings
+#-------------------------
+
+# Nodes to ignore when exporting
+# Based on the node "name" attribute
+nodes_to_ignore:
+  - SCF
+
 #-------------------------
 # Renaming settings
 #-------------------------
@@ -18,6 +28,7 @@ compartment_to_short:
   peroxisome: 'per'
   unknown: 'cyt'
   vacuole: 'vac'
+  none: 'none'
 
 node_form_to_short:
   abiotic: 'ab'

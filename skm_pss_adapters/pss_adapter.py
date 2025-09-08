@@ -3,14 +3,17 @@ Exports ..... formats ..... of PSS model
 '''
 # library imports
 from .entity_classes import Reaction
+from .config import pss_export_config
+
+# internal imports
+from .entity_classes import IDTracker
+from .model_fixes import ModelFixer
 
 # # SBGN
 # from .sbgn_api import SBGN
 
 # SBML
 from .sbml import SBML
-
-
 
 # # projection for DiNAR
 # from .pss_dinar_translation import pss_dinar_translation
@@ -27,18 +30,61 @@ class PSSAdapter():
         - *JSON (for API)
     '''
 
-    def __init__(self, graph, include_genes=False):
+    def __init__(self, graph, include_genes=False, nodes_to_ignore='default', model_fixes_identify=True, model_fixes_apply=True, model_fixes_interactive=False):
         '''
         Constructor for PSSAdapter class.
+
+        Parameters
+        ----------
+        graph : Graph
+            The graph database connection object.
+        include_genes : bool, optional
+            Whether to include gene information in the reactions. Default is False.
+        nodes_to_ignore : list or str, optional
+            Nodes to ignore during export. Can be a list of node names or a single string. Default is 'default', which ignores nodes defined in the configuration.
+        implement_model_fixes : bool, optional
+            Whether to apply model fixes after collecting data. Default is True.
+
+        Returns
+        -------
+        None
+
         '''
         self.graph = graph
         self.include_genes = include_genes
+
+        if nodes_to_ignore == 'default':
+            # ignore nodes that are not reactions or families
+            self.nodes_to_ignore = pss_export_config.nodes_to_ignore
+        elif nodes_to_ignore is None:
+            # no nodes to ignore
+            self.nodes_to_ignore = []
+        elif isinstance(nodes_to_ignore, str):
+            # assume a single node
+            self.nodes_to_ignore = [nodes_to_ignore.strip()]
+        elif not isinstance(nodes_to_ignore, list):
+            raise ValueError("nodes_to_ignore must be a list or a comma-separated string.")
+        else:
+            # assume a list of nodes
+            self.nodes_to_ignore = [n.strip() for n in nodes_to_ignore]
 
         # TODO Create list of reactions to be exported:
         #   if reactions is defined, limit to list of reactions
         #   OR if pathways is defined, limit to reactions in list of pathways
 
+
+        self.reactions = {}
+        self.nodes = {}
+        self.species = {}
+
+        print("Collecting reactions and annotations from the database...")
         self.collect()
+        print(f"Collected {len(self.reactions)} reactions.")
+
+        self.additional_reactions = [] # any fixes go here
+
+        if model_fixes_identify:
+            self.identify_model_fixes(apply_fixes=model_fixes_apply, interactive=model_fixes_interactive)
 
     def collect(self):
         '''Collect reaction list and pathway annotations (all reusable between formats)
@@ -104,29 +150,44 @@ class PSSAdapter():
         self.reaction_pathways = self.graph.run_query(
             _collect_reaction_pathways)
 
-        def _get_reactions_and_paths(tx, reaction_ids):
+        def _get_reactions_and_paths(tx, reaction_ids, nodes_to_ignore):
+
             cy = '''
                 UNWIND $reaction_ids as id
                 WITH id
-                MATCH p=(r:Reaction)-[]-()
+                MATCH p=(r:Reaction)-[]-(n)
                 WHERE r.reaction_id=id
+                AND NOT n.name IN $nodes_to_ignore
                 RETURN  id AS reaction_id,
                         r AS reaction,
                         collect(p) AS path
                 '''
-            result = tx.run(cy, reaction_ids=reaction_ids)
+            result = tx.run(cy, reaction_ids=reaction_ids, nodes_to_ignore=nodes_to_ignore)
             return [r for r in result]
 
-        reaction_data = self.graph.run_query(_get_reactions_and_paths, self.all_reactions)
+        reaction_data = self.graph.run_query(_get_reactions_and_paths, self.all_reactions, self.nodes_to_ignore)
 
-        self.reaction_paths = {
-            d['reaction_id']: d['path']
-            for d in reaction_data
-        }
-        self.reaction_properties = {
-            d['reaction_id']: d['reaction']
-            for d in reaction_data
-        }
+        for reaction_dict in reaction_data:
+
+            reaction_id = reaction_dict['reaction_id']
+            reaction_properties = reaction_dict['reaction']
+            reaction_paths = reaction_dict['path']
+
+            reaction = Reaction(
+                reaction_id,
+                reaction_properties['reaction_type'],
+                reaction_properties,
+                include_genes=self.include_genes
+            )
+            reaction.add_edges(reaction_paths)
+            self.reactions[reaction_id] = reaction
+
+    def identify_model_fixes(self, interactive=False, apply_fixes=True):
+        ''' Identify model fixes to the collected reactions.
+            1) Fix node 'form' issues by changing input/outputs to active forms.
+            2) Add transport reactions for species in multiple compartments.
+        '''
+        ModelFixer(self, apply_fixes=apply_fixes, interactive=interactive).identify_model_fixes()
 
     def create_sbml(self, access='public', filename=None, entities_table=None):
         '''  '''
@@ -139,24 +200,14 @@ class PSSAdapter():
         sbml = SBML(self.graph)
 
         for reaction_id in reaction_list:
+            sbml.add_reaction(self.reactions[reaction_id])
+
+        for reaction_id in self.additional_reactions:
             print(reaction_id)
-            reaction_properties = self.reaction_properties[reaction_id]
-            # print('reaction_properties: ', reaction_properties)
-
-            # create reaction object
-            reaction = Reaction(
-                reaction_id,
-                reaction_properties['reaction_type'],
-                reaction_properties,
-                include_genes=self.include_genes,
-            )
-
-            edge_list = self.reaction_paths[reaction_id]
-            reaction.add_edges(edge_list)
-
-            sbml.add_reaction(reaction)
+            sbml.add_reaction(self.reactions[reaction_id])
 
         print("-"*40)
+        print("Ignored nodes: ", self.nodes_to_ignore)
         print("Number of species in SBML: ", len(sbml.species_ids))
         print("Number of species types in SBML: ", len(sbml.species_types_ids))
         print("Number of compartments in SBML: ", len(sbml.compartment_ids))
