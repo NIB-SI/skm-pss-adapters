@@ -94,16 +94,43 @@ class PSSAdapter():
 
         invented_reason_allowlist = ["invented:harmonise-location"]
 
-        ### Part 1: include restricted = no external_links filter
-        def _list_reaction_ids(tx):
-            cy = '''
-                MATCH (r:Reaction)-[]-(n)
-                RETURN DISTINCT r.reaction_id AS reaction_id
-                '''
-            result = tx.run(cy)
-            return [r['reaction_id'] for r in result]
+        def _get_reactions_and_paths(tx, nodes_to_ignore):
 
-        self.all_reactions = self.graph.run_query(_list_reaction_ids)
+            cy = '''
+                MATCH (r:Reaction)
+                OPTIONAL MATCH p=(r)-[]-(n)
+                WHERE NOT n.name IN $nodes_to_ignore
+                RETURN  r.reaction_id AS reaction_id,
+                        r AS reaction,
+                        collect(p) AS path
+                '''
+            result = tx.run(cy, nodes_to_ignore=nodes_to_ignore)
+            return [r for r in result]
+
+        reaction_data = self.graph.run_query(_get_reactions_and_paths, self.nodes_to_ignore)
+
+        for reaction_dict in reaction_data:
+
+            reaction_id = reaction_dict['reaction_id']
+            reaction_paths = reaction_dict['path']
+
+            if len(reaction_paths) == 0:
+                print(f"No edges on reaction {reaction_id}")
+                continue
+
+            reaction_properties = reaction_dict['reaction']
+
+            reaction = Reaction(
+                reaction_id,
+                reaction_properties['reaction_type'],
+                reaction_properties,
+                include_genes=self.include_genes
+            )
+            reaction.add_edges(reaction_paths)
+            self.reactions[reaction_id] = reaction
+
+        ### Part 1: include restricted = no external_links filter
+        self.all_reactions = list(self.reactions.keys())
 
         ### Part 2: public = filter external_links to reactions with at least
         #                    one source which is not 'other' or 'invented'
@@ -119,12 +146,14 @@ class PSSAdapter():
                 OR c>0
                 RETURN DISTINCT r.reaction_id AS reaction_id
                 '''
-            result = tx.run(
-                cy, invented_reason_allowlist=invented_reason_allowlist)
+            result = tx.run(cy, invented_reason_allowlist=invented_reason_allowlist)
             return [r['reaction_id'] for r in result]
 
-        self.public_reactions = self.graph.run_query(
-            _list_reaction_ids_filter, invented_reason_allowlist)
+        self.public_reactions = [
+            r for r in self.graph.run_query(_list_reaction_ids_filter,
+                                            invented_reason_allowlist)
+            if r in self.all_reactions
+        ]
 
         # fetch annotations
         def _collect_node_annotations(tx):
@@ -149,38 +178,6 @@ class PSSAdapter():
 
         self.reaction_pathways = self.graph.run_query(
             _collect_reaction_pathways)
-
-        def _get_reactions_and_paths(tx, reaction_ids, nodes_to_ignore):
-
-            cy = '''
-                UNWIND $reaction_ids as id
-                WITH id
-                MATCH p=(r:Reaction)-[]-(n)
-                WHERE r.reaction_id=id
-                AND NOT n.name IN $nodes_to_ignore
-                RETURN  id AS reaction_id,
-                        r AS reaction,
-                        collect(p) AS path
-                '''
-            result = tx.run(cy, reaction_ids=reaction_ids, nodes_to_ignore=nodes_to_ignore)
-            return [r for r in result]
-
-        reaction_data = self.graph.run_query(_get_reactions_and_paths, self.all_reactions, self.nodes_to_ignore)
-
-        for reaction_dict in reaction_data:
-
-            reaction_id = reaction_dict['reaction_id']
-            reaction_properties = reaction_dict['reaction']
-            reaction_paths = reaction_dict['path']
-
-            reaction = Reaction(
-                reaction_id,
-                reaction_properties['reaction_type'],
-                reaction_properties,
-                include_genes=self.include_genes
-            )
-            reaction.add_edges(reaction_paths)
-            self.reactions[reaction_id] = reaction
 
     def identify_model_fixes(self, interactive=False, apply_fixes=True):
         ''' Identify model fixes to the collected reactions.
