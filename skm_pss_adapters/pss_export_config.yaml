@@ -8,7 +8,23 @@
 # Nodes to ignore when exporting
 # Based on the node "name" attribute
 nodes_to_ignore:
+  - GA|GID1|SLR1
+  - SLR1[LOC_OS06G03710]
+  - GID|SCF
   - SCF
+  - D14|MAX2|SCF
+  - COI1|JA-Ile|SCF
+  - EBF|SCF
+  - RISC - miR390
+  - CML12|PID
+  - PBP1|PID
+  - CMI1|ICR1
+  # just for testing:
+  - LST8[AT2G22040,AT3G18140]
+  - FLS2[AT5G46330]
+  - FKBP62[AT3G25230]
+  - RAR1[AT5G51700]
+  - HSP70[AT3G12580]
 
 #-------------------------
 # Renaming settings
