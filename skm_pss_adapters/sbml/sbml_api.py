@@ -172,11 +172,13 @@ class SBML(SBMLDocument, IDTracker):
                 # print(f"SBML: {reaction.reaction_id}, annotation added: {link}")
 
         if reaction.evidence_sentence:
-            SBML.add_note(rxn, reaction.evidence_sentence)
-            # print(f"SBML: {reaction.reaction_id}, note added: {reaction.evidence_sentence}")
+            SBML.add_note(rxn, 'curator_notes', reaction.evidence_sentence)
+
+        if reaction.reaction_mechanism:
+            SBML.add_note(rxn, 'mechanism', reaction.reaction_mechanism)
 
         if reaction.export_notes:
-            SBML.add_note(rxn, reaction.export_notes)
+            SBML.add_note(rxn, 'export_notes', reaction.export_notes)
 
         return rxn
 
@@ -192,13 +194,13 @@ class SBML(SBMLDocument, IDTracker):
         return check(status, "add annotation to node")
 
     @staticmethod
-    def add_note(node, note):
+    def add_note(node, prefix, note):
         ''' Add a note to a node (reaction or species) '''
 
         if not note:
             return
 
-        note = f"<body xmlns='http://www.w3.org/1999/xhtml'><p>note:{note}</p></body>"
+        note = f"<body xmlns='http://www.w3.org/1999/xhtml'><p>{prefix}:{note}</p></body>"
         if node.isSetNotes():
             status = node.appendNotes(note)
         else:
