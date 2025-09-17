@@ -99,7 +99,7 @@ node_form_to_SBO:
 # according to SBML l3v2, should be child of 'occurring entity representation' SBO:0000231
 # Using children of 'process'
 reaction_type_to_SBO:
-  catalysis: 176
+  catalysis: '0000176'
 
   # translocation (to split based on whether a protein is involved)
   translocation:            '0000185' # translocation reaction , alternative: many # TODO
@@ -114,15 +114,18 @@ reaction_type_to_SBO:
   # alternative: 0000589-genetic production
   # there is no 'activation' term for transcription, translation #TODO
   # add 'role' to the modifier as e.g. stimulator (SBO:0000459) in node_role_to_SBO #TODO
-  transcriptional activation: '0000183' # transcription
-  translational activation:   '0000184' # translation
+  transcriptional activation: '0000589' # genetic production '0000183' # transcription
+  translational activation:   '0000589' # genetic production '0000184' # translation
 
   # transcriptional/translational repression (to split based on 'reaction_mechanism')
   # alternative: 0000589-genetic production
   # there is no 'inhibition'/'repression' term for transcription, translation
   # add 'role' to the modifier as e.g. inhibitor (SBO:0000020) in node_role_to_SBO #TODO
-  transcriptional repression: '0000183' # transcription
-  translational repression:   '0000184' # translation
+  transcriptional repression: '0000589' # genetic production '0000183' # transcription
+  translational repression:   '0000589' # genetic production '0000184' # translation
+
+  transcription translation: '0000589' # genetic production '0000205' #  composite biochemical process
+                 # '0000589' # genetic production
 
   protein activation:         '0000656' # activation (conformational change of a protein)
   protein deactivation:       '0000665' # inactivation (conformational change of a protein)

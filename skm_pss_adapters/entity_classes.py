@@ -5,7 +5,7 @@
 import re
 from .config import pss_export_config
 
-from .reaction_definitions import reaction_classes
+from .reaction_definitions import reaction_types, reaction_classes
 
 #-------------------------------------
 #  Helper classes (for nodes and reactions)
@@ -86,10 +86,27 @@ class Reaction:
 
     def set_SBO_term(self):
         """ Set the SBO term for the reaction based on its type. """
-        if self.reaction_type in pss_export_config.reaction_type_to_SBO:
+
+        if self.reaction_type == reaction_types.TRANSCRIPTIONAL_TRANSLATIONAL_ACTIVATION:
+            if self.reaction_mechanism == "translation":
+                self.sbo_term = int(pss_export_config.reaction_type_to_SBO['translational activation'])
+            elif self.reaction_mechanism == "transcription":
+                self.sbo_term = int(pss_export_config.reaction_type_to_SBO['transcriptional activation'])
+            else:
+                self.sbo_term = int(pss_export_config.reaction_type_to_SBO['transcription translation'])
+
+        elif self.reaction_type == reaction_types.TRANSCRIPTIONAL_TRANSLATIONAL_REPRESSION:
+            if self.reaction_mechanism == "translation":
+                self.sbo_term = int(pss_export_config.reaction_type_to_SBO['translational repression'])
+            elif self.reaction_mechanism == "transcription":
+                self.sbo_term = int(pss_export_config.reaction_type_to_SBO['transcriptional repression'])
+            else:
+                self.sbo_term = int(pss_export_config.reaction_type_to_SBO['transcription translation'])
+
+        elif self.reaction_type in pss_export_config.reaction_type_to_SBO:
             self.sbo_term = int(pss_export_config.reaction_type_to_SBO[self.reaction_type])
+
         else:
-            # TODO translation vs transcription based on  "reaction_mechanism"
             self.sbo_term = None
         # print(self.reaction_type, self.sbo_term)
 
