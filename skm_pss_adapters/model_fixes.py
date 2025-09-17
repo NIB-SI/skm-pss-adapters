@@ -446,10 +446,13 @@ class ModelFixer:
         # Multiple components, some with "protein" and some with "protein_active"
         # and the components with "protein" has one or more translation reactions,
         # suggest changing the output of those translation reactions to "protein_active"
-        elif ({'protein'} in comp_forms) and ({'protein_active'}
-                                              in comp_forms):
+        elif ( (protein_alone := {'protein'} in comp_forms) or ({'gene', 'protein'} in comp_forms) ) and \
+                       ( ({'protein_active'} in comp_forms) or ({'gene', 'protein_active'} in comp_forms) ):
             # find the component with "protein"
-            protein_comp = components[comp_forms.index({'protein'})]
+            if protein_alone:
+                protein_comp = components[comp_forms.index({'protein'})]
+            else:
+                protein_comp = components[comp_forms.index({'gene', 'protein'})]
 
             # option 1 - we can change translation/transcription to output protein active
             # find all translation reactions in this component
