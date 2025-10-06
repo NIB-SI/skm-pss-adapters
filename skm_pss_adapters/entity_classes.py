@@ -5,7 +5,7 @@
 import re
 from .config import pss_export_config
 
-from .reaction_definitions import reaction_types, reaction_classes
+from .reaction_definitions import reaction_types, reaction_classes, participant_roles
 
 #-------------------------------------
 #  Helper classes (for nodes and reactions)
@@ -39,6 +39,9 @@ class Reaction:
         # settings for preparing reactions
         self.include_conditions = include_conditions
         self.include_genes = include_genes
+
+        # Figure out the roles of the reaction participants based on the reaction type
+        participant_roles.assign_roles(self)
 
     def add_edges(self, edge_list):
 
@@ -198,6 +201,39 @@ class Species:
 
     def __repr__(self):
         return f"Species(name={self.name}, form={self.form}, compartment={self.compartment})"
+
+class SpeciesReference():
+    def __init__(self, species, stoichiometry=1, role=None):
+        '''
+        Parameters
+        ----------
+        species: Species
+            The species object.
+        stoichiometry: int
+            The stoichiometry of the species in the reaction. // not relevant for modifiers.
+            Default is 1.
+        '''
+        self.species = species
+        self.stoichiometry = stoichiometry
+        self.role = role
+
+        if self.role == "template":
+            self.constant = True
+        else:
+            self.constant = False
+
+        self.set_SBO_term()
+
+    def set_SBO_term(self):
+        """ Set the SBO term for the species role. """
+        if self.role in pss_export_config.node_role_to_SBO:
+            self.sbo_term = int(pss_export_config.node_role_to_SBO[self.role])
+        else:
+            self.sbo_term = None
+
+    def __repr__(self):
+        return f"SpeciesReference(name={self.name}, form={self.form}, compartment={self.compartment}, stoichiometry={self.stoichiometry}, role={self.role})"
+
 
 #-------------------------------------
 #  Naming/identifier functions

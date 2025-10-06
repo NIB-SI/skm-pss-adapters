@@ -2,7 +2,7 @@ from libsbml import (SBMLDocument, writeSBMLToFile, writeSBMLToString,
                     LIBSBML_OPERATION_SUCCESS, OperationReturnValue_toString,
                     CVTerm, BIOLOGICAL_QUALIFIER, BQB_IS_DESCRIBED_BY)
 
-from ..entity_classes import IDTracker, Species, SpeciesType
+from ..entity_classes import IDTracker, Species, SpeciesType, SpeciesReference, Reaction
 
 SBML_LEVEL = 3
 SBML_VERSION = 2
@@ -148,6 +148,50 @@ class SBML(SBMLDocument, IDTracker):
         # print(f"SBML: compartment id: {compartment} --> {id_}")
         return id_
 
+    def create_reactant_reference(self, species, role, reaction):
+        ''' Create SBML "SpeciesReference" in the model
+        Returns the SBML species reference object '''
+
+        id_ = self.get_sbml_species(species)
+        species_reference = SpeciesReference(species, stoichiometry=1, role=role)
+        reactant = reaction.createReactant()
+        reactant.setSpecies(id_)
+        reactant.setStoichiometry(species_reference.stoichiometry)
+        reactant.setConstant(species_reference.constant)
+        if species_reference.sbo_term:
+            reactant.setSBOTerm(species_reference.sbo_term)
+
+        return reactant
+
+
+    def create_product_reference(self, species, role, reaction):
+        ''' Create SBML "SpeciesReference" in the model
+        Returns the SBML species reference object '''
+
+        id_ = self.get_sbml_species(species)
+        species_reference = SpeciesReference(species, stoichiometry=1, role=role)
+        product = reaction.createProduct()
+        product.setSpecies(id_)
+        product.setStoichiometry(species_reference.stoichiometry)
+        product.setConstant(species_reference.constant)
+        if species_reference.sbo_term:
+            product.setSBOTerm(species_reference.sbo_term)
+
+        return product
+
+    def create_modifier_reference(self, species, role, reaction):
+        ''' Create SBML "ModifierReference" in the model
+        Returns the SBML modifier reference object '''
+
+        id_ = self.get_sbml_species(species)
+        species_reference = SpeciesReference(species, stoichiometry=None, role=role)
+        modifier = reaction.createModifier()
+        modifier.setSpecies(id_)
+        if species_reference.sbo_term:
+            modifier.setSBOTerm(species_reference.sbo_term)
+
+        return modifier
+
     def create_sbml_reaction(self, reaction):
         ''' Create SBML "Reaction" in the model
         Returns the reaction itself, not the identifier '''
@@ -236,24 +280,20 @@ class SBML(SBMLDocument, IDTracker):
         # (2) substrate glyphs and arcs
         # (substrate)-[consumption]->(reaction)
         for species in reaction.substrates:
-            id_ = self.get_sbml_species(species)
-            reactant = rxn.createReactant()
-            reactant.setSpecies(id_)
-            reactant.setStoichiometry(1)
-            reactant.setConstant(False)
+            self.create_reactant_reference(species, role=reaction.substrate_role, reaction=rxn)
 
         # (3) product glyphs and arcs
         # (reaction)-[production]->(product)
         for species in reaction.products:
-            id_ = self.get_sbml_species(species)
-            product = rxn.createProduct()
-            product.setSpecies(id_)
-            product.setStoichiometry(1)
-            product.setConstant(False)
+            self.create_product_reference(species, role=reaction.product_role, reaction=rxn)
 
         # (4) modifier glyphs and arcs
         # (modifier)-[modifies]->(reaction)
         for species in reaction.modifiers:
-            id_ = self.get_sbml_species(species)
-            modifier = rxn.createModifier()
-            modifier.setSpecies(id_)
+            self.create_modifier_reference(species, role=reaction.modifier_role, reaction=rxn)
+
+        # create the empty kinetic law XML node for the reaction, set the SBO term
+        kinetic_law = rxn.createKineticLaw()
+        check(kinetic_law, f'create kinetic law for reaction {reaction.reaction_id}\n')
+        if reaction.kinetic_law_sbo:
+            kinetic_law.setSBOTerm(reaction.kinetic_law_sbo)
