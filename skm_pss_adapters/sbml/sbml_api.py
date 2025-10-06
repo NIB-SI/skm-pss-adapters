@@ -40,11 +40,14 @@ def check(value, message):
 
 class SBML(SBMLDocument, IDTracker):
 
-    def __init__(self, graph):
+    def __init__(self, graph, kinetic_laws=True):
         '''
 
 
         '''
+
+        self.kinetic_laws = kinetic_laws
+
         SBMLDocument.__init__(self, SBML_LEVEL, SBML_VERSION)
         IDTracker.__init__(self)
 
@@ -203,11 +206,18 @@ class SBML(SBMLDocument, IDTracker):
 
         rxn.setMetaId(f"metaid_skm_{reaction.reaction_id}")
 
-        if reaction.sbo_term:
-            rxn.setSBOTerm(reaction.sbo_term)
+        if reaction.reaction_type_sbo:
+            rxn.setSBOTerm(reaction.reaction_type_sbo)
 
         rxn.setReversible(False)
         rxn.setFast(False)
+
+        if self.kinetic_laws:
+            kinetic_law = rxn.createKineticLaw()
+            kinetic_law.setMath(None)
+            check(kinetic_law, f'create kinetic law for reaction {reaction.reaction_id}\n')
+            if reaction.kinetic_law_sbo:
+                kinetic_law.setSBOTerm(reaction.kinetic_law_sbo)
 
         SBML.add_annotation(rxn, f"skm:{reaction.reaction_id}")
         if reaction.external_links:

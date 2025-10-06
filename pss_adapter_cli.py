@@ -38,7 +38,8 @@ def cli():
 @click.option("-v", "--verbose", is_flag=True, help="Enable verbose output.")
 @click.option("--include-genes", is_flag=True, help="Include genes as species (transcription reactions).")
 @click.option("--entities-table", default=None, type=click.Path(), help="Path to also export a table of entities in model.")
-def to_sbml(access, neo4j_uri, neo4j_user, neo4j_password, model_fixes_identify, model_fixes_apply, model_fixes_interactive, nodes_to_ignore, filename, verbose, include_genes, entities_table):
+@click.option("--kinetic-laws", is_flag=True, help="Include kinetic laws (SBO term only) in SBML output.")
+def to_sbml(access, neo4j_uri, neo4j_user, neo4j_password, model_fixes_identify, model_fixes_apply, model_fixes_interactive, nodes_to_ignore, filename, verbose, include_genes, entities_table, kinetic_laws):
     """
     Export model to SBML.
 
@@ -60,7 +61,7 @@ def to_sbml(access, neo4j_uri, neo4j_user, neo4j_password, model_fixes_identify,
         graph = Graph(uri=neo4j_uri, user=neo4j_user, pwd=neo4j_password)
         adapter = PSSAdapter(graph, include_genes=include_genes, nodes_to_ignore=nodes_to_ignore, model_fixes_identify=model_fixes_identify, model_fixes_apply=model_fixes_apply, model_fixes_interactive=model_fixes_interactive)
 
-        adapter.create_sbml(filename=filename, access=access, entities_table=entities_table)
+        adapter.create_sbml(filename=filename, access=access, entities_table=entities_table, kinetic_laws=kinetic_laws)
 
         if verbose:
             click.secho("SBML export complete.", fg="green")

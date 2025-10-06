@@ -186,7 +186,7 @@ class PSSAdapter():
         '''
         ModelFixer(self, apply_fixes=apply_fixes, interactive=interactive).identify_model_fixes()
 
-    def create_sbml(self, access='public', filename=None, entities_table=None):
+    def create_sbml(self, access='public', filename=None, entities_table=None, kinetic_laws=True):
         '''  '''
 
         if access == 'public':
@@ -194,7 +194,7 @@ class PSSAdapter():
         else:
             reaction_list = self.all_reactions
 
-        sbml = SBML(self.graph)
+        sbml = SBML(self.graph, kinetic_laws=kinetic_laws)
 
         for reaction_id in reaction_list:
             sbml.add_reaction(self.reactions[reaction_id])

@@ -5,7 +5,7 @@
 import re
 from .config import pss_export_config
 
-from .reaction_definitions import reaction_types, reaction_classes, participant_roles
+from .reaction_definitions import reaction_types, reaction_classes, participant_roles, reaction_subtypes
 
 #-------------------------------------
 #  Helper classes (for nodes and reactions)
@@ -18,12 +18,12 @@ class Reaction:
         self.reaction_type = reaction_type
 
         # string attributes
-        for attr in ['reaction_mechanism', 'evidence_sentence', 'reaction_effect']:
-            setattr(self, attr, reaction_properties.get(attr, None))
+        self.reaction_mechanism = reaction_properties.get('reaction_mechanism', None)
+        self.evidence_sentence = reaction_properties.get('evidence_sentence', None)
+        self.reaction_effect = reaction_properties.get('reaction_effect', None)
 
         # list attributes
-        for attr in ['external_links']:
-            setattr(self, attr, reaction_properties.get(attr, []))
+        self.external_links = reaction_properties.get('external_links', [])
 
         # export attribute
         if export_notes is None:
@@ -34,14 +34,17 @@ class Reaction:
         self.products = []
         self.modifiers = []
 
-        self.set_SBO_term()
+        # Determine the reaction subtype based on its type and mechanism, participants, etc
+        reaction_subtypes.assign_reaction_subtype(self)
+
+        # Figure out the roles of the reaction participants based on the reaction type
+        participant_roles.assign_roles(self)
+
+        self.set_SBO_term() # set both reaction and kinetic law terms
 
         # settings for preparing reactions
         self.include_conditions = include_conditions
         self.include_genes = include_genes
-
-        # Figure out the roles of the reaction participants based on the reaction type
-        participant_roles.assign_roles(self)
 
     def add_edges(self, edge_list):
 
@@ -88,30 +91,15 @@ class Reaction:
                 print(f"Reaction: {edge_type}, {self.reaction_id}")
 
     def set_SBO_term(self):
-        """ Set the SBO term for the reaction based on its type. """
+        """ Set the SBO term for the reaction and the kinetic law based on its type. """
 
-        if self.reaction_type == reaction_types.TRANSCRIPTIONAL_TRANSLATIONAL_ACTIVATION:
-            if self.reaction_mechanism == "translation":
-                self.sbo_term = int(pss_export_config.reaction_type_to_SBO['translational activation'])
-            elif self.reaction_mechanism == "transcription":
-                self.sbo_term = int(pss_export_config.reaction_type_to_SBO['transcriptional activation'])
-            else:
-                self.sbo_term = int(pss_export_config.reaction_type_to_SBO['transcription translation'])
-
-        elif self.reaction_type == reaction_types.TRANSCRIPTIONAL_TRANSLATIONAL_REPRESSION:
-            if self.reaction_mechanism == "translation":
-                self.sbo_term = int(pss_export_config.reaction_type_to_SBO['translational repression'])
-            elif self.reaction_mechanism == "transcription":
-                self.sbo_term = int(pss_export_config.reaction_type_to_SBO['transcriptional repression'])
-            else:
-                self.sbo_term = int(pss_export_config.reaction_type_to_SBO['transcription translation'])
-
-        elif self.reaction_type in pss_export_config.reaction_type_to_SBO:
-            self.sbo_term = int(pss_export_config.reaction_type_to_SBO[self.reaction_type])
-
+        if self.reaction_subtype in pss_export_config.reaction_subtype_to_SBO:
+            self.reaction_type_sbo = int(pss_export_config.reaction_subtype_to_SBO[self.reaction_subtype]['reaction_type_SBO'])
+            self.kinetic_law_sbo = int(pss_export_config.reaction_subtype_to_SBO[self.reaction_subtype]['kinetic_law_SBO'])
         else:
-            self.sbo_term = None
-        # print(self.reaction_type, self.sbo_term)
+            self.reaction_type_sbo = None
+            self.kinetic_law_sbo = None
+            print(f"Warning: No SBO term found for reaction subtype {self.reaction_subtype}")
 
     def add_substrate(self, substrate):
         self.substrates.append(substrate)
@@ -121,6 +109,12 @@ class Reaction:
 
     def add_modifier(self, modifier):
         self.modifiers.append(modifier)
+
+    def has_modifiers(self):
+        return len(self.modifiers) > 0
+
+    def has_substrates(self):
+        return len(self.substrates) > 0
 
     def __repr__(self):
         return (f"Reaction(id={self.id}, "

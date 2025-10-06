@@ -96,42 +96,94 @@ node_form_to_SBO:
   ta-sirna:         '0000334' # non-coding RNA
 
 # annotate reactions in listOfReactions
-# according to SBML l3v2, should be child of 'occurring entity representation' SBO:0000231
-# Using children of 'process'
-reaction_type_to_SBO:
-  catalysis: '0000176'
+# (1) reaction type: according to SBML l3v2, should be child of 'occurring entity representation' SBO:0000231
+# (2) kinetic law: according to SBML l3v2, should be child of 'mathematical expression' SBO:0000244
+reaction_subtype_to_SBO:
+  binding-with-modifier:
+    reaction_type_SBO: '0000177' # non-covalent binding (PPI=non-covalent), alternative: 0000344-molecular interaction
+    kinetic_law_SBO:   '0000528' # common modular rate law
+  binding-without-modifier:
+    reaction_type_SBO: '0000177' # non-covalent binding (PPI=non-covalent), alternative: 0000344-molecular interaction
+    kinetic_law_SBO:   '0000528' # common modular rate law
 
-  # translocation (to split based on whether a protein is involved)
-  translocation:            '0000185' # translocation reaction , alternative: many # TODO
-  transport:                '0000655' # transport reaction (with protein), alternative: many # TODO
+  dissociation-with-modifier:
+    reaction_type_SBO: '0000180' # dissociation (non-covalent complex to independent biochemical entities)
+    kinetic_law_SBO:   '0000029' # Henri-Michaelis-Menten rate law
+  dissociation-without-modifier:
+    reaction_type_SBO: '0000015' # dissociation (non-covalent complex to independent biochemical entities)
+    kinetic_law_SBO:   '0000029' # Henri-Michaelis-Menten rate law
 
-  binding/oligomerisation:  '0000177' # non-covalent binding (PPI=non-covalent), alternative: 0000344-molecular interaction
-  dissociation:             '0000180' # dissociation (non-covalent complex to independent biochemical entities)
+  catalysis-with-substrate-and-with-modifier:
+    reaction_type_SBO: '0000176' # biochemical reaction
+    kinetic_law_SBO:   '0000029' # Henri-Michaelis-Menten rate law
+  catalysis-without-substrate-and-with-modifier:
+    reaction_type_SBO: '0000176' # biochemical reaction
+    kinetic_law_SBO:   '0000029' # Henri-Michaelis-Menten rate law
+  catalysis-with-substrate-and-without-modifier:
+    reaction_type_SBO: '0000176' # biochemical reaction (OR 0000672 - spontaneous reaction)
+    kinetic_law_SBO:   '0000029' # Henri-Michaelis-Menten rate law
+  catalysis-without-substrate-and-without-modifier:
+    reaction_type_SBO: '0000176' # spontaneous reaction (OR 0000672 - spontaneous reaction)
+    kinetic_law_SBO:   '0000029' # Henri-Michaelis-Menten rate law
 
-  degradation/secretion:    '0000179'  # degradation
+  degradation-with-modifier:
+    reaction_type_SBO: '0000179' # degradation
+    kinetic_law_SBO:   '0000029' # Henri-Michaelis-Menten rate law
+  degradation-without-modifier:
+    reaction_type_SBO: '0000179' # degradation
+    kinetic_law_SBO:   '0000029' # Henri-Michaelis-Menten rate law
 
-  # transcriptional/translational activation (to split based on 'reaction_mechanism')
-  # alternative: 0000589-genetic production
-  # there is no 'activation' term for transcription, translation #TODO
-  # add 'role' to the modifier as e.g. stimulator (SBO:0000459) in node_role_to_SBO #TODO
-  transcriptional activation: '0000589' # genetic production '0000183' # transcription
-  translational activation:   '0000589' # genetic production '0000184' # translation
+  protein-activation-with-modifier:
+    reaction_type_SBO: '0000656' # activation (conformational change of a protein)
+    kinetic_law_SBO:   '0000029' # Henri-Michaelis-Menten rate law
 
-  # transcriptional/translational repression (to split based on 'reaction_mechanism')
-  # alternative: 0000589-genetic production
-  # there is no 'inhibition'/'repression' term for transcription, translation
-  # add 'role' to the modifier as e.g. inhibitor (SBO:0000020) in node_role_to_SBO #TODO
-  transcriptional repression: '0000589' # genetic production '0000183' # transcription
-  translational repression:   '0000589' # genetic production '0000184' # translation
+  protein-deactivation-with-modifier:
+    reaction_type_SBO: '0000665' # inactivation (conformational change of a protein)
+    kinetic_law_SBO:   '0000029' # Henri-Michaelis-Menten rate law
 
-  transcription translation: '0000589' # genetic production '0000205' #  composite biochemical process
-                 # '0000589' # genetic production
+  transcriptional-activation-with-modifier:
+    reaction_type_SBO: '0000589' # genetic production (OR 0000183 - transcription)
+    kinetic_law_SBO:   '0000198' # Hill-type rate law, reduced form
+  translational-activation-with-modifier:
+    reaction_type_SBO: '0000589' # genetic production (OR 0000184 - translation)
+    kinetic_law_SBO:   '0000198' # Hill-type rate law, reduced form
+  transcriptional-or-translational-activation-with-modifier:
+    reaction_type_SBO: '0000589' # genetic production (OR 0000183 - transcription)
+    kinetic_law_SBO:   '0000198' # Hill-type rate law, reduced form
 
-  protein activation:         '0000656' # activation (conformational change of a protein)
-  protein deactivation:       '0000665' # inactivation (conformational change of a protein)
+  transcriptional-repression-with-modifier:
+    reaction_type_SBO: '0000589' # genetic production (OR 0000183 - transcription)
+    kinetic_law_SBO:   '0000198' # Hill-type rate law, reduced form
+  translational-repression-with-modifier:
+    reaction_type_SBO: '0000589' # genetic production (OR 0000183 - transcription)
+    kinetic_law_SBO:   '0000198' # Hill-type rate law, reduced form
+  transcriptional-or-translational-repression-with-modifier:
+    reaction_type_SBO: '0000589' # genetic production (OR 0000183 - transcription)
+    kinetic_law_SBO:   '0000198' # Hill-type rate law, reduced form
 
-  unknown:                    '0000176' # biochemical reaction
-  cleavage/auto-cleavage:     '0000178' # cleavage
+  translocation-with-modifier:
+    reaction_type_SBO: '0000657' # active transport
+    kinetic_law_SBO:   '0000029' # Henri-Michaelis-Menten rate law
+  translocation-without-modifier:
+    reaction_type_SBO: '0000658' # passive transport
+    kinetic_law_SBO:   '0000029' # Henri-Michaelis-Menten rate law
+
+  unknown-activation-with-modifier:
+    reaction_type_SBO: '0000176' # biochemical reaction
+    kinetic_law_SBO:   '0000029' # Henri-Michaelis-Menten rate law
+  unknown-activation-without-modifier:
+    reaction_type_SBO: '0000176' # biochemical reaction
+    kinetic_law_SBO:   '0000029' # Henri-Michaelis-Menten rate law
+  unknown-inhibition-with-modifier:
+    reaction_type_SBO: '0000176' # biochemical reaction
+    kinetic_law_SBO:   '0000029' # Henri-Michaelis-Menten rate law
+  unknown-inhibition-without-modifier:
+    reaction_type_SBO: '0000176' # biochemical reaction
+    kinetic_law_SBO:   '0000029' # Henri-Michaelis-Menten rate law
+
+  unknown:
+    reaction_type_SBO: '0000176' # biochemical reaction
+    kinetic_law_SBO:   '0000029' # Henri-Michaelis-Menten rate law
 
 # annotate species role in the reactions in speciesReference (per reaction)
 # according to SBML l3v2, should be child of 'participant role' SBO:0000003

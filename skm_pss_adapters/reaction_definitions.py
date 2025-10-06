@@ -74,3 +74,156 @@ class participant_roles:
 
         # product roles
         reaction.product_role = participant_roles.PRODUCT
+
+
+
+
+class reaction_subtypes:
+    """
+    Class to hold constants for different types of kinetic laws.
+    These constants are used to categorize reactions based on their kinetic behavior.
+    """
+    # Define constants for reaction subtypes
+    BINDING_WITH_MODIFIER = 'binding-with-modifier'
+    BINDING_WITHOUT_MODIFIER = 'binding-without-modifier'
+
+    DISSOCIATION_WITH_MODIFIER = 'dissociation-with-modifier'
+    DISSOCIATION_WITHOUT_MODIFIER = 'dissociation-without-modifier'
+
+    CATALYSIS_WITH_SUBSTRATE_AND_WITH_MODIFIER = 'catalysis-with-substrate-and-with-modifier'
+    CATALYSIS_WITHOUT_SUBSTRATE_AND_WITH_MODIFIER = 'catalysis-without-substrate-and-with-modifier'
+    CATALYSIS_WITH_SUBSTRATE_AND_WITHOUT_MODIFIER = 'catalysis-with-substrate-and-without-modifier'
+    CATALYSIS_WITHOUT_SUBSTRATE_AND_WITHOUT_MODIFIER = 'catalysis-without-substrate-and-without-modifier'
+
+    DEGRADATION_WITH_MODIFIER = 'degradation-with-modifier'
+    DEGRADATION_WITHOUT_MODIFIER = 'degradation-without-modifier'
+
+    PROTEIN_DEACTIVATION_WITH_MODIFIER = 'protein-deactivation-with-modifier'
+
+    PROTEIN_ACTIVATION_WITH_MODIFIER = 'protein-activation-with-modifier'
+
+    TRANSCRIPTIONAL_ACTIVATION_WITH_MODIFIER = 'transcriptional-activation-with-modifier'
+    TRANSLATIONAL_ACTIVATION_WITH_MODIFIER = 'translational-activation-with-modifier'
+    TRANSCRIPTIONAL_OR_TRANSLATIONAL_ACTIVATION_WITH_MODIFIER = 'transcriptional-or-translational-activation-with-modifier'
+
+    TRANSCRIPTIONAL_REPRESSION_WITH_MODIFIER = 'transcriptional-repression-with-modifier'
+    TRANSLATIONAL_REPRESSION_WITH_MODIFIER = 'translational-repression-with-modifier'
+    TRANSCRIPTIONAL_OR_TRANSLATIONAL_REPRESSION_WITH_MODIFIER = 'transcriptional-or-translational-repression-with-modifier'
+
+    TRANSLOCATION_WITH_MODIFIER = 'translocation-with-modifier'
+    TRANSLOCATION_WITHOUT_MODIFIER = 'translocation-without-modifier'
+
+    UNKNOWN_ACTIVATION_WITH_MODIFIER = 'unknown-activation-with-modifier'
+    UNKNOWN_ACTIVATION_WITHOUT_MODIFIER = 'unknown-activation-without-modifier'
+    UNKNOWN_INHIBITION_WITH_MODIFIER = 'unknown-inhibition-with-modifier'
+    UNKNOWN_INHIBITION_WITHOUT_MODIFIER = 'unknown-inhibition-without-modifier'
+
+    UNKNOWN = 'unknown'
+
+    @staticmethod
+    def assign_reaction_subtype(reaction):
+        """
+        Assign a subtype to the reaction based on its type, effect, mechanism,
+        and the presence of substrates and modifiers.
+        """
+
+        match reaction.reaction_type:
+            case reaction_types.BINDING_OLIGOMERISATION:
+                if reaction.has_modifiers():
+                    reaction.reaction_subtype = reaction_subtypes.BINDING_WITH_MODIFIER
+                else:
+                    reaction.reaction_subtype = reaction_subtypes.BINDING_WITHOUT_MODIFIER
+
+            case reaction_types.DISSOCIATION:
+                if reaction.has_modifiers():
+                    reaction.reaction_subtype = reaction_subtypes.DISSOCIATION_WITH_MODIFIER
+                else:
+                    reaction.reaction_subtype = reaction_subtypes.DISSOCIATION_WITHOUT_MODIFIER
+
+            case reaction_types.CATALYSIS:
+                if reaction.has_substrates() and reaction.has_modifiers():
+                    reaction.reaction_subtype = reaction_subtypes.CATALYSIS_WITH_SUBSTRATE_AND_WITH_MODIFIER
+                elif reaction.has_modifiers():
+                    reaction.reaction_subtype = reaction_subtypes.CATALYSIS_WITHOUT_SUBSTRATE_AND_WITH_MODIFIER
+                elif reaction.has_substrates():
+                    reaction.reaction_subtype = reaction_subtypes.CATALYSIS_WITH_SUBSTRATE_AND_WITHOUT_MODIFIER
+                else:
+                    reaction.reaction_subtype = reaction_subtypes.CATALYSIS_WITHOUT_SUBSTRATE_AND_WITHOUT_MODIFIER
+
+            case reaction_types.DEGRADATION_SECRETION:
+                if reaction.has_modifiers():
+                    reaction.reaction_subtype = reaction_subtypes.DEGRADATION_WITH_MODIFIER
+                else:
+                    reaction.reaction_subtype = reaction_subtypes.DEGRADATION_WITHOUT_MODIFIER
+
+            case reaction_types.PROTEIN_DEACTIVATION:
+                reaction.reaction_subtype = reaction_subtypes.PROTEIN_DEACTIVATION_WITH_MODIFIER
+
+            case reaction_types.PROTEIN_ACTIVATION:
+                reaction.reaction_subtype = reaction_subtypes.PROTEIN_ACTIVATION_WITH_MODIFIER
+
+            case reaction_types.TRANSCRIPTIONAL_TRANSLATIONAL_ACTIVATION:
+                if reaction.reaction_mechanism == 'transcription':
+                    reaction.reaction_subtype = reaction_subtypes.TRANSCRIPTIONAL_ACTIVATION_WITH_MODIFIER
+                elif reaction.reaction_mechanism == 'translation':
+                    reaction.reaction_subtype = reaction_subtypes.TRANSLATIONAL_ACTIVATION_WITH_MODIFIER
+                else:
+                    reaction.reaction_subtype = reaction_subtypes.TRANSCRIPTIONAL_OR_TRANSLATIONAL_ACTIVATION_WITH_MODIFIER
+
+            case reaction_types.TRANSCRIPTIONAL_TRANSLATIONAL_REPRESSION:
+                if reaction.reaction_mechanism == 'transcription':
+                    reaction.reaction_subtype = reaction_subtypes.TRANSCRIPTIONAL_REPRESSION_WITH_MODIFIER
+                elif reaction.reaction_mechanism == 'translation':
+                    reaction.reaction_subtype = reaction_subtypes.TRANSLATIONAL_REPRESSION_WITH_MODIFIER
+                else:
+                    reaction.reaction_subtype = reaction_subtypes.TRANSCRIPTIONAL_OR_TRANSLATIONAL_REPRESSION_WITH_MODIFIER
+
+            case reaction_types.TRANSLOCATION:
+                if reaction.has_modifiers():
+                    reaction.reaction_subtype = reaction_subtypes.TRANSLOCATION_WITH_MODIFIER
+                else:
+                    reaction.reaction_subtype = reaction_subtypes.TRANSLOCATION_WITHOUT_MODIFIER
+
+            case reaction_types.UNKNOWN:
+                if reaction.reaction_effect == 'activation':
+                    if reaction.has_modifiers():
+                        reaction.reaction_subtype = reaction_subtypes.UNKNOWN_ACTIVATION_WITH_MODIFIER
+                    else:
+                        reaction.reaction_subtype = reaction_subtypes.UNKNOWN_ACTIVATION_WITHOUT_MODIFIER
+                elif reaction.reaction_effect == 'inhibition':
+                    if reaction.has_modifiers():
+                        reaction.reaction_subtype = reaction_subtypes.UNKNOWN_INHIBITION_WITH_MODIFIER
+                    else:
+                        reaction.reaction_subtype = reaction_subtypes.UNKNOWN_INHIBITION_WITHOUT_MODIFIER
+                else:
+                   reaction.reaction_subtype = reaction_subtypes.UNKNOWN
+
+            case _:
+                reaction.reaction_subtype = reaction_subtypes.UNKNOWN
+
+
+ALL_REACTION_SUBTYPES = [
+    'binding-with-modifier',
+    'binding-without-modifier',
+    'dissociation-with-modifier',
+    'dissociation-without-modifier',
+    'catalysis-with-substrate-and-with-modifier',
+    'catalysis-without-substrate-and-with-modifier',
+    'catalysis-with-substrate-and-without-modifier',
+    'catalysis-without-substrate-and-without-modifier',
+    'degradation-with-modifier',
+    'degradation-without-modifier',
+    'protein-deactivation-with-modifier',
+    'protein-activation-with-modifier',
+    'transcriptional-activation-with-modifier',
+    'translational-activation-with-modifier',
+    'transcriptional-repression-with-modifier',
+    'translational-repression-with-modifier',
+    'translocation-with-modifier',
+    'translocation-without-modifier',
+    'unknown-activation-with-modifier',
+    'unknown-activation-without-modifier',
+    'unknown-inhibition-with-modifier',
+    'unknown-inhibition-without-modifier',
+    'unknown'
+]
