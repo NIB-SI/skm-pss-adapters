@@ -68,6 +68,7 @@ java -jar  /path..to..jar/SBMLsqueezer-2.2.jar --sbml-in-file output.sbml  --sbm
 
 Known limitations and issues:
 - The SBML file does not contain equations for the reactions.
+    - See https://github.com/R4d0slav/ThesisRepository
 	- You can add the equations using SBMLsqueezer as described above.
 - Continuous updates to the PSS database means that the model may not be connected or completely consistent with modelling.
 - Some molecules may be disconnected in the SBML file, for example if:
