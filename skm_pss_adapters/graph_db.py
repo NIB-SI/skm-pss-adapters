@@ -8,7 +8,7 @@ from dotenv import dotenv_values
 
 from neo4j import GraphDatabase
 
-class Graph:
+class GraphDB:
 
     def __init__(self, uri=None, user=None, pwd=None):
         '''

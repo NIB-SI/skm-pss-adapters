@@ -40,7 +40,7 @@ def check(value, message):
 
 class SBML(SBMLDocument, IDTracker):
 
-    def __init__(self, graph, kinetic_laws=True):
+    def __init__(self, pss_adapter, kinetic_laws=True):
         '''
 
 
@@ -51,12 +51,10 @@ class SBML(SBMLDocument, IDTracker):
         SBMLDocument.__init__(self, SBML_LEVEL, SBML_VERSION)
         IDTracker.__init__(self)
 
-        self.graph = graph
-
         # start the SBML model
         self.sbml_model = self.createModel()
         check(self.sbml_model, 'create model')
-        check(self.sbml_model.setId('PSSTODO'), 'set identifier on the Model object')
+        check(self.sbml_model.setId(pss_adapter.model_id), 'set identifier on the Model object')
 
     def write(self, filename, replace_markup=True):
         if filename is None:
@@ -95,14 +93,14 @@ class SBML(SBMLDocument, IDTracker):
             id: str
         '''
 
-        id_, status =  self.get_species_id(species) # look up the id in the IDTracker
+        species_id, status =  self.get_species_id(species) # look up the id in the IDTracker
 
         if status == 1:
             pass
 
         else:
             sp = self.sbml_model.createSpecies()
-            sp.setId(id_)
+            sp.setId(species_id)
             sp.setName(species.name)
 
             if (SBML_VERSION >= 2) and (SBML_LEVEL == 2):
@@ -119,13 +117,13 @@ class SBML(SBMLDocument, IDTracker):
 
             sp.setHasOnlySubstanceUnits(False)
             sp.setBoundaryCondition(False)
-            sp.setConstant(False)
+            sp.setConstant(species.constant)
 
-            self.set_species_id(species, id_)
-            species.set_id(id_)
-            # print(f"SBML: species id: {species.name} --> {id_}", species.compartment, species.form, species.sbo_term)
+            self.set_species_id(species, species_id)
+            species.set_id(species_id)
+            # print(f"SBML: species id: {species.name} --> {species_id}", species.compartment, species.form, species.sbo_term)
 
-        return id_
+        return species_id
 
     def get_sbml_compartment(self, compartment):
 
@@ -160,7 +158,7 @@ class SBML(SBMLDocument, IDTracker):
         reactant = reaction.createReactant()
         reactant.setSpecies(id_)
         reactant.setStoichiometry(species_reference.stoichiometry)
-        reactant.setConstant(species_reference.constant)
+        reactant.setConstant(species.constant)
         if species_reference.sbo_term:
             reactant.setSBOTerm(species_reference.sbo_term)
 
@@ -176,7 +174,7 @@ class SBML(SBMLDocument, IDTracker):
         product = reaction.createProduct()
         product.setSpecies(id_)
         product.setStoichiometry(species_reference.stoichiometry)
-        product.setConstant(species_reference.constant)
+        product.setConstant(species.constant)
         if species_reference.sbo_term:
             product.setSBOTerm(species_reference.sbo_term)
 

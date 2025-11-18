@@ -34,7 +34,7 @@ mv .env.example .env
 Create environment with dependencies:
 
 ```bash
-mamba create -n pss-sbml conda-forge::neo4j-python-driver conda-forge::python-libsbml conda-forge::pyyaml conda-forge::click
+mamba create -n pss-sbml conda-forge::neo4j-python-driver conda-forge::python-libsbml conda-forge::pyyaml conda-forge::click python-dotenv
 ```
 
 If using the model fixes module, also install the following dependecies:

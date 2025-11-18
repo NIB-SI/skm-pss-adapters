@@ -3,11 +3,10 @@
 import click
 import functools
 
-from skm_pss_adapters.graph import Graph
-from skm_pss_adapters.pss_adapter import PSSAdapter
+from skm_pss_adapters.graph_db import GraphDB
+from skm_pss_adapters.pss import PSSAdapter
 
 def neo4j_common_params(func):
-    @click.option("--access",  default='public', help="Use public access data.")
     @click.option("--neo4j-uri", default=None, help="Neo4j connection URI.")
     @click.option("--neo4j-user", default=None, help="Neo4j username.")
     @click.option("--neo4j-password", default=None, help="Neo4j password.")
@@ -26,6 +25,14 @@ def modelfixing_common_params(func):
         return func(*args, **kwargs)
     return wrapper
 
+def reaction_filter_common_params(func):
+    @click.option("--reactions", default=None, help="Comma-separated list of reaction IDs to include in export.")
+    @click.option("--access",  default='public', help="Use public access data.")
+    @functools.wraps(func)
+    def wrapper(*args, **kwargs):
+        return func(*args, **kwargs)
+    return wrapper
+
 @click.group()
 def cli():
     """Top-level CLI entrypoint."""
@@ -33,13 +40,22 @@ def cli():
 
 @cli.command()
 @neo4j_common_params
+@reaction_filter_common_params
 @modelfixing_common_params
 @click.argument("filename", type=click.Path())
 @click.option("-v", "--verbose", is_flag=True, help="Enable verbose output.")
 @click.option("--include-genes", is_flag=True, help="Include genes as species (transcription reactions).")
 @click.option("--entities-table", default=None, type=click.Path(), help="Path to also export a table of entities in model.")
 @click.option("--kinetic-laws", is_flag=True, help="Include kinetic laws (SBO term only) in SBML output.")
-def to_sbml(access, neo4j_uri, neo4j_user, neo4j_password, model_fixes_identify, model_fixes_apply, model_fixes_interactive, nodes_to_ignore, filename, verbose, include_genes, entities_table, kinetic_laws):
+def to_sbml(neo4j_uri, neo4j_user, neo4j_password,
+            access, reactions,
+            model_fixes_identify, model_fixes_apply, model_fixes_interactive,
+            nodes_to_ignore,
+            filename,
+            verbose,
+            include_genes,
+            entities_table,
+            kinetic_laws):
     """
     Export model to SBML.
 
@@ -58,8 +74,13 @@ def to_sbml(access, neo4j_uri, neo4j_user, neo4j_password, model_fixes_identify,
     try:
 
         # connect to pSS in neo4j:
-        graph = Graph(uri=neo4j_uri, user=neo4j_user, pwd=neo4j_password)
-        adapter = PSSAdapter(graph, include_genes=include_genes, nodes_to_ignore=nodes_to_ignore, model_fixes_identify=model_fixes_identify, model_fixes_apply=model_fixes_apply, model_fixes_interactive=model_fixes_interactive)
+        graph_db = GraphDB(uri=neo4j_uri, user=neo4j_user, pwd=neo4j_password)
+
+        # build adapter
+        adapter = PSSAdapter(graph_db)
+        adapter.collect_reactions(reactions=reactions, access=access, include_genes=include_genes, nodes_to_ignore=nodes_to_ignore)
+        if model_fixes_identify:
+            adapter.model_fixes(apply_fixes=model_fixes_apply, interactive=model_fixes_interactive)
 
         adapter.create_sbml(filename=filename, access=access, entities_table=entities_table, kinetic_laws=kinetic_laws)
 

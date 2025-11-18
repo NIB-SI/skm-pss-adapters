@@ -3,9 +3,9 @@
 '''
 
 import re
-from .config import pss_export_config
 
-from .reaction_definitions import reaction_types, reaction_classes, participant_roles, reaction_subtypes
+from .pss.config import pss_export_config
+from .pss.pss_reaction_definitions import reaction_types, reaction_classes, participant_roles, reaction_subtypes
 
 #-------------------------------------
 #  Helper classes (for nodes and reactions)
@@ -180,6 +180,11 @@ class Species:
 
         self.compartment = compartment
 
+        if self.form == "gene":
+            self.constant = True
+        else:
+            self.constant = False
+
         self.set_SBO_term()
 
     def set_id(self, id_):
@@ -194,7 +199,7 @@ class Species:
             self.sbo_term = None
 
     def __repr__(self):
-        return f"Species(name={self.name}, form={self.form}, compartment={self.compartment})"
+        return f"Species(id={self.id}, name={self.name}, form={self.form}, compartment={self.compartment})"
 
 class SpeciesReference():
     def __init__(self, species, stoichiometry=1, role=None):
@@ -210,11 +215,6 @@ class SpeciesReference():
         self.species = species
         self.stoichiometry = stoichiometry
         self.role = role
-
-        if self.role == "template":
-            self.constant = True
-        else:
-            self.constant = False
 
         self.set_SBO_term()
 

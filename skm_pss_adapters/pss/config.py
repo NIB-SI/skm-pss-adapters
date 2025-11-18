@@ -2,6 +2,8 @@
 Class to hold config for PSS and the exports.
 '''
 
+from pathlib import Path
+
 import yaml
 import re
 
@@ -56,5 +58,5 @@ class Config:
 
         return settings
 
-pss_export_config = Config(filename="skm_pss_adapters/pss_export_config.yaml")
-pss_schema_config = Config(filename="skm_pss_adapters/pss_schema_config.yaml")
+pss_export_config = Config(filename=Path(__file__).with_name("pss_export_config.yaml"))
+pss_schema_config = Config(filename=Path(__file__).with_name("pss_schema_config.yaml"))
