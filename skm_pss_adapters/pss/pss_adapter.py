@@ -69,7 +69,7 @@ class PSSAdapter():
             " available at https://skm.nib.si"\
             " using the skm-pss-adapters package."
 
-        self.exported = None
+        self.export_datetime = None
 
     def collect_reactions(self, **kwargs):
         ''' Collect reactions and annotations from the database.
@@ -109,8 +109,7 @@ class PSSAdapter():
         # collect reaction pathways (for SBGN)
         self.reaction_pathways = collector.collect_reaction_pathways()
 
-        self.exported = datetime.now().isoformat()
-
+        self.export_datetime = datetime.now().isoformat()
 
     def model_fixes(self, interactive=False, apply_fixes=True):
         ''' Identify model fixes to the collected reactions.
@@ -147,3 +146,19 @@ class PSSAdapter():
             sbml.write_entities_table(entities_table)
 
         return sbml.write(filename)
+
+    def create_tabulrqual(self, access='public', filename=None):
+        '''  '''
+
+        tabqual = TabluarQqual(self)
+
+        for reaction_id in self.reaction_ids:
+            tabqual.add_reaction(self.reactions[reaction_id])
+
+        for reaction_id in self.additional_reactions:
+            print(reaction_id)
+            tabqual.add_reaction(self.reactions[reaction_id])
+
+        tabqual.create_transitions()
+
+        return tabqual.write(filename)

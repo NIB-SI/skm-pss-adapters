@@ -73,7 +73,7 @@ def to_sbml(neo4j_uri, neo4j_user, neo4j_password,
 
     try:
 
-        # connect to pSS in neo4j:
+        # connect to PSS in neo4j:
         graph_db = GraphDB(uri=neo4j_uri, user=neo4j_user, pwd=neo4j_password)
 
         # build adapter
@@ -90,6 +90,40 @@ def to_sbml(neo4j_uri, neo4j_user, neo4j_password,
     except Exception as e:
         click.secho(f"Error: {e}", fg="red", err=True)
         raise click.Abort()
+
+
+@cli.command()
+@neo4j_common_params
+@reaction_filter_common_params
+@modelfixing_common_params
+@click.argument("filename", type=click.Path())
+@click.option("-v", "--verbose", is_flag=True, help="Enable verbose output.")
+def to_tabularqual(neo4j_uri, neo4j_user, neo4j_password,
+            access, reactions,
+            model_fixes_identify, model_fixes_apply, model_fixes_interactive,
+            nodes_to_ignore,
+            filename,
+            verbose
+            ):
+
+    if verbose:
+        click.echo(f"Exporting to TabularQual...")
+        click.echo(f"  Access: {access}")
+        click.echo(f"  Neo4j URI: {neo4j_uri}")
+        click.echo(f"  Output file: {filename}")
+
+    # connect to PSS in neo4j:
+    graph_db = GraphDB(uri=neo4j_uri, user=neo4j_user, pwd=neo4j_password)
+
+    # build adapter
+    adapter = PSSAdapter(graph_db)
+    adapter.collect_reactions(reactions=reactions, access=access, nodes_to_ignore=nodes_to_ignore)
+    if model_fixes_identify:
+        adapter.model_fixes(apply_fixes=model_fixes_apply, interactive=model_fixes_interactive)
+
+    adapter.create_tabulrqual(filename=filename, access=access)
+
+    click.echo(f"Wrote spreadsheet to {filename}")
 
 if __name__ == "__main__":
     cli()
