@@ -58,6 +58,8 @@ class PSSAdapter():
 
         self.reactions = {}
         self.reaction_ids = []
+        self.include_genes = None
+
         self.node_annotations = {}
         self.reaction_pathways = {}
 
@@ -111,6 +113,9 @@ class PSSAdapter():
 
         self.export_datetime = datetime.now().isoformat()
 
+        # needed for model fixes
+        self.include_genes = collector.include_genes
+
     def model_fixes(self, interactive=False, apply_fixes=True):
         ''' Identify model fixes to the collected reactions.
             1) Fix node 'form' issues by changing input/outputs to active forms.
@@ -147,7 +152,7 @@ class PSSAdapter():
 
         return sbml.write(filename)
 
-    def create_tabulrqual(self, access='public', filename=None):
+    def create_tabulrqual(self, filename=None):
         '''  '''
 
         tabqual = TabluarQqual(self)
@@ -160,5 +165,14 @@ class PSSAdapter():
             tabqual.add_reaction(self.reactions[reaction_id])
 
         tabqual.create_transitions()
+
+        print("-" * 40)
+        # print("Ignored nodes: ", self.nodes_to_ignore)
+        print("Number of species in SBML: ", len(tabqual.species_ids))
+        print("Number of species types in SBML: ",
+              len(tabqual.species_types_ids))
+        print("Number of compartments in SBML: ", len(tabqual.compartment_ids))
+        print("Number of reactions in SBML: ", len(tabqual.reaction_ids))
+        print("-" * 40)
 
         return tabqual.write(filename)

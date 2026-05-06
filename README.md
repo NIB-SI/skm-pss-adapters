@@ -31,15 +31,20 @@ mv .env.example .env
 
 ## Usage
 
-Create environment with dependencies:
+Create environment with dependencies, e.g. using `mamba`:
 
 ```bash
-mamba create -n pss-sbml conda-forge::neo4j-python-driver conda-forge::python-libsbml conda-forge::pyyaml conda-forge::click python-dotenv
+mamba create -n pss-adapters conda-forge::neo4j-python-driver conda-forge::python-libsbml conda-forge::pyyaml conda-forge::click python-dotenv
 ```
 
 If using the model fixes module, also install the following dependecies:
 ```bash 
 pip install pandas networkx rich matplotlib
+```
+
+If using the TabulaQual format, also install that dependency:
+```bash 
+pip install tabularqual
 ```
 
 ### SBML:
@@ -75,6 +80,19 @@ Known limitations and issues:
 	- They occur in multiple compartments, but are not connected by a transport reaction.
 	- A protein is formed by a translation reaction, but the protein is not "activated" by an "activation" reaction.
 	- A complex is formed by a reaction, but the complex is not "activated" by an "activation" reaction.
+
+### TabularQual:
+
+To view the CLI options:
+```bash
+python pss_adapter_cli.py to-tabularqual --help
+```
+
+Create the TabularQual file using the CLI:
+```bash
+python pss_adapter_cli.py to-tabularqual output.tsv --access public
+```
+
 
 ## TODOs
 

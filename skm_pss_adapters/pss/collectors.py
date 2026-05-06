@@ -5,6 +5,7 @@ INVENTED_REASOON_ALLOWLIST = ["invented:harmonise-location"]
 
 
 class PSSCollector:
+    """All the logic for deciding which reactions to gather from PSS"""
 
     def __init__(self,
                  pss_adapter,

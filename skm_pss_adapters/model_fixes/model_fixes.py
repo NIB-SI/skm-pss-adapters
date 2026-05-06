@@ -27,12 +27,13 @@ The following solutions are implemented:
 from collections import defaultdict
 from rich.console import Console
 import matplotlib.pyplot as plt
+import networkx as nx
 
 from ..pss.pss_reaction_definitions import reaction_types, reaction_classes
 from ..pss.config import pss_export_config
 
 from ..entity_classes import IDTracker, Reaction, Species
-from .graph import Graph
+from .graph import Graph, GraphVisualizer
 
 console = Console()
 
