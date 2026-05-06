@@ -6,6 +6,18 @@ import functools
 from skm_pss_adapters.graph_db import GraphDB
 from skm_pss_adapters.pss import PSSAdapter
 
+# click option that converts comma separated string into list
+# (existing options in click do not handle unlimited number of values)
+# simple solution found here: https://stackoverflow.com/a/48394085
+class ConvertStrToList(click.Option):
+    def type_cast_value(self, ctx, value) -> list:
+        try:
+            value = str(value)
+            list_of_items = [c.strip() for c in value.split(",")]
+            return list_of_items
+        except Exception:
+            raise click.BadParameter(value)
+
 def neo4j_common_params(func):
     @click.option("--neo4j-uri", default=None, help="Neo4j connection URI.")
     @click.option("--neo4j-user", default=None, help="Neo4j username.")
@@ -26,7 +38,7 @@ def modelfixing_common_params(func):
     return wrapper
 
 def reaction_filter_common_params(func):
-    @click.option("--reactions", default=None, help="Comma-separated list of reaction IDs to include in export.")
+    @click.option("--reactions", cls=ConvertStrToList, default=None, help="Comma-separated list of reaction IDs to include in export.")
     @click.option("--access",  default='public', help="Use public access data.")
     @functools.wraps(func)
     def wrapper(*args, **kwargs):
@@ -121,7 +133,7 @@ def to_tabularqual(neo4j_uri, neo4j_user, neo4j_password,
     if model_fixes_identify:
         adapter.model_fixes(apply_fixes=model_fixes_apply, interactive=model_fixes_interactive)
 
-    adapter.create_tabulrqual(filename=filename, access=access)
+    adapter.create_tabulrqual(filename=filename)
 
     click.echo(f"Wrote spreadsheet to {filename}")
 
