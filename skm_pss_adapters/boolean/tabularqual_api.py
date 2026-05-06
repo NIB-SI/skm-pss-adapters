@@ -4,14 +4,16 @@ Use https://github.com/sys-bio/TabularQual to export table
 '''
 
 from collections import defaultdict
+from importlib import resources
 
-from TabularQual_converter.types import QualModel, ModelInfo
-from TabularQual_converter.types import Species as TabularQualSpecies
-from TabularQual_converter.types import Transition as TabularQualTransition
-from TabularQual_converter.types import InteractionEvidence as TabularQualInteractionEvidence
-from TabularQual_converter.types import Person as TabularQualPerson
+from tabularqual.types import QualModel, ModelInfo
+from tabularqual.types import Species as TabularQualSpecies
 
-from TabularQual_converter.spreadsheet_writer import write_spreadsheet
+from tabularqual.types import Transition as TabularQualTransition
+from tabularqual.types import InteractionEvidence as TabularQualInteractionEvidence
+from tabularqual.types import Person as TabularQualPerson
+
+from tabularqual.spreadsheet_writer import write_spreadsheet
 
 from ..entity_classes import IDTracker, Species, SpeciesType, SpeciesReference, Reaction
 from .boolean import reaction_rule_constructor, rule_composer
@@ -51,7 +53,16 @@ class TabluarQqual(IDTracker):
         ''' Write TabularQual spreadsheet to file '''
 
         qualmodel = self.to_QualModel()
-        write_spreadsheet(qualmodel, filename)
+
+        # use the template in "resources" folder
+        # resources/tabular_qual_pss_template.xlsx
+
+        template_path = resources.files('skm_pss_adapters.resources') / 'tabular_qual_pss_template.xlsx'
+
+        # print(template)
+        # print(template.exists())
+
+        write_spreadsheet(qualmodel, filename, template_path=template_path)
 
     def create_model_info(self):
 
@@ -103,7 +114,7 @@ class TabluarQqual(IDTracker):
 
             tabqual_species = TabularQualSpecies(
                 species_id=species_id,
-                name=species.name,
+                name=species.label,
                 compartment=species.compartment,
                 constant=species.constant,
                 initial_level=None,
@@ -196,3 +207,11 @@ class TabluarQqual(IDTracker):
             )
 
             self.transitions.append(transition)
+
+    # transition_id: Optional[str]
+    # name: Optional[str]
+    # target: str
+    # level: Optional[int]  # resultLevel
+    # rule: str  # boolean expression string
+    # annotations: List[Tuple[str, str]] = field(default_factory=list)
+    # notes: List[str] = field(default_factory=list)

@@ -12,6 +12,11 @@ from .pss.pss_reaction_definitions import reaction_types, reaction_classes, part
 #-------------------------------------
 
 class Reaction:
+    """
+
+
+    This is the "Transition" for SBMLqual/TabularQual
+    """
     def __init__(self, reaction_id, reaction_type, reaction_properties, include_conditions=False, include_genes=False, export_notes=None):
         self.id = reaction_id
         self.reaction_id = reaction_id
@@ -172,6 +177,8 @@ class Species:
         self.name = name
         self.form = form
 
+        self.label = self.name.split("[")[0]
+
         if ((compartment is None) or (compartment == 'unknown')):
             # in case of cellular location, all nodes not assigned
             # are put within cytoplasm
@@ -330,7 +337,7 @@ class IDTracker:
         if (id_ := self.species_ids.get((species.name, species.form, compartment))) is not None:
             return id_, 1
 
-        id_ = f"s_{self.remove_nonalphanum(self.get_display_label(species.name))}"\
+        id_ = f"{self.remove_nonalphanum(self.get_display_label(species.name))}"\
               f"_{pss_export_config.compartment_to_short[compartment]}"\
               f"_{pss_export_config.node_form_to_short[species.form]}"
 
