@@ -41,6 +41,11 @@ class GraphDB:
         except Exception as e:
             raise ConnectionError(f"Failed to connect to the database: {e}")
 
+
+        # verify connection
+        self.driver.verify_connectivity()
+        print("Connection established.")
+
     def close(self):
         self.driver.close()
 
