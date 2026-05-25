@@ -13,9 +13,7 @@ from .pss.pss_reaction_definitions import reaction_types, reaction_classes, part
 
 class Reaction:
     """
-
-
-    This is the "Transition" for SBMLqual/TabularQual
+    This is the "Reaction" for SBML, or the "Transition" for SBMLqual/TabularQual
     """
     def __init__(self, reaction_id, reaction_type, reaction_properties, include_conditions=False, include_genes=False, export_notes=None):
         self.id = reaction_id
@@ -453,3 +451,21 @@ class IDTracker:
             id_ += '_1'
 
         return id_
+
+
+#---------------------
+#  Other helper classes
+#---------------------
+
+class Person:
+
+    def __init__(self, family_name=None, given_name=None, organization=None, email=None):
+
+        self.family_name = family_name.strip() if family_name else None
+        self.given_name = given_name.strip() if given_name else None
+        self.organization = organization.strip() if organization else None
+        self.email = email.strip() if email else None
+
+    def __repr__(self):
+        return f"Person(family_name={self.family_name}, given_name={self.given_name}, organization={self.organization}, email={self.email})"
+

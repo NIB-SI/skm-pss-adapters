@@ -9,6 +9,18 @@ Each function returns a tuple:
 (target_species_name (string), boolean_rule (string))
 '''
 
+def generate_transition(rules):
+    """
+    List of rules
+    """
+
+    activation_rules = rule_dict["activation"]
+    inhibition_rules = rule_dict["inhibition"]
+
+    update_function = rule_composer(species_id, activation_rules, inhibition_rules)
+
+
+
 def rule_composer(species_id, activation_rules, inhibition_rules):
 
     if len(activation_rules) + len(inhibition_rules) > 0:

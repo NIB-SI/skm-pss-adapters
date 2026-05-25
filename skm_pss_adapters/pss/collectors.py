@@ -146,14 +146,21 @@ class PSSCollector:
             cy = '''
                 MATCH (n)
                 WHERE NOT ('Reaction' IN labels(n) OR 'Family' in labels(n) )
-                RETURN n.name AS name, n.pathway AS pathway, labels(n) AS labels
+                RETURN n.name AS name,
+                       n.description AS description,
+                       n.additional_information AS additional_information,
+                       n.pathway AS pathway,
+                       n.external_links AS external_links,
+                       n.functional_cluster_id AS functional_cluster_id,
+                       n.ath_homologues AS ath_homologues,
+                       labels(n) AS labels
                 '''
             result = tx.run(cy)
             return [x for x in result]
 
         node_annotations = self.pss_adapter.graph_db.run_query(
             _collect_node_annotations)
-        return {d["name"]: d for d in node_annotations}
+        return {d["name"]: dict(d) for d in node_annotations}
 
     def collect_reaction_pathways(self):
 

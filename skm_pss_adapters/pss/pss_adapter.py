@@ -8,6 +8,8 @@ from .collectors import PSSCollector
 # internal imports
 from ..model_fixes import ModelFixer
 
+from ..entity_classes import Person
+
 # # SBGN
 # from .sbgn_api import SBGN
 
@@ -34,7 +36,11 @@ class PSSAdapter():
         - *JSON (for API)
     '''
 
-    def __init__(self, graph_db):
+    def __init__(self, graph_db,
+                    model_id=None,
+                    model_name=None,
+                    model_description=None,
+                    creator=None):
         '''
         Constructor for PSSAdapter class.
 
@@ -65,11 +71,14 @@ class PSSAdapter():
 
         self.additional_reactions = []
 
-        self.model_id = f"pss_model"
-        self.model_name = "PSS Model"
-        self.model_description = "Model exported from the Plant Stress Signalling knowledge graph (PSS)"\
-            " available at https://skm.nib.si"\
-            " using the skm-pss-adapters package."
+        self.model_id = model_id or "pss_exported_model"
+        self.model_name = model_name or "PSS Exported Model"
+        self.model_description = model_description or "Model exported from the Plant Stress Signalling knowledge graph (PSS) available at https://skm.nib.si using the skm-pss-adapters package."
+
+        if creator:
+            self.creators = [Person(*creator.split("|")) for creator in creator] # expects format of: familyName | givenName | organization | email
+        else:
+            self.creators = []
 
         self.export_datetime = None
 
@@ -128,7 +137,6 @@ class PSSAdapter():
                     filename=None,
                     entities_table=None,
                     kinetic_laws=True):
-        '''  '''
 
         sbml = SBML(self, kinetic_laws=kinetic_laws)
 
@@ -139,13 +147,12 @@ class PSSAdapter():
             print(reaction_id)
             sbml.add_reaction(self.reactions[reaction_id])
 
-        # print("-" * 40)
-        # print("Ignored nodes: ", self.nodes_to_ignore)
-        # print("Number of species in SBML: ", len(sbml.species_ids))
-        # print("Number of species types in SBML: ", len(sbml.species_types_ids))
-        # print("Number of compartments in SBML: ", len(sbml.compartment_ids))
-        # print("Number of reactions in SBML: ", len(sbml.reaction_ids))
-        # print("-" * 40)
+        print("-" * 40)
+        print("Number of species in SBML: ", len(sbml.species_ids))
+        print("Number of species types in SBML: ", len(sbml.species_types_ids))
+        print("Number of compartments in SBML: ", len(sbml.compartment_ids))
+        print("Number of reactions in SBML: ", len(sbml.reaction_ids))
+        print("-" * 40)
 
         if entities_table:
             sbml.write_entities_table(entities_table)
@@ -167,12 +174,9 @@ class PSSAdapter():
         tabqual.create_transitions()
 
         print("-" * 40)
-        # print("Ignored nodes: ", self.nodes_to_ignore)
-        print("Number of species in SBML: ", len(tabqual.species_ids))
-        print("Number of species types in SBML: ",
-              len(tabqual.species_types_ids))
-        print("Number of compartments in SBML: ", len(tabqual.compartment_ids))
-        print("Number of reactions in SBML: ", len(tabqual.reaction_ids))
+        print("Number of species in TabluarQqual spreadsheet: ", len(tabqual.species_ids))
+        print("Number of compartments in TabluarQqual spreadsheet: ", len(tabqual.compartment_ids))
+        print("Number of transitions in TabluarQqual spreadsheet: ", len(tabqual.transitions))
         print("-" * 40)
 
         return tabqual.write(filename)

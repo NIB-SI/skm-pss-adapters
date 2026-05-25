@@ -5,6 +5,7 @@ Use https://github.com/sys-bio/TabularQual to export table
 
 from collections import defaultdict
 from importlib import resources
+from typing import Dict, Any, Tuple, List, Set, Protocol, Optional
 
 from tabularqual.types import QualModel, ModelInfo
 from tabularqual.types import Species as TabularQualSpecies
@@ -18,6 +19,20 @@ from tabularqual.spreadsheet_writer import write_spreadsheet
 from ..entity_classes import IDTracker, Species, SpeciesType, SpeciesReference, Reaction
 from .boolean import reaction_rule_constructor, rule_composer
 
+from ..annotations.annotation_manager import annotation_manager
+
+class TabularQualAnnotationStrategy:
+    """Formats node annotations specifically for TabularQual layouts independently."""
+    def format_node(self, valid_records: List[Dict[str, Any]]) -> List[Tuple[str, str]]:
+        tabular_entries = []
+        for r in valid_records:
+            raw_qualifier = r.get("qualifier", "bqbiol:isVersionOf")
+            clean_qualifier = raw_qualifier.split(":", 1)[-1] if ":" in raw_qualifier else raw_qualifier
+            db_identifier = f"{r['canonical_prefix']}:{r['local_id']}"
+            tabular_entries.append((clean_qualifier, db_identifier))
+        return tabular_entries
+
+annotation_manager.register_export_strategy("tabularqual", TabularQualAnnotationStrategy())
 
 #-------------------------------------
 # TabluarQqual
@@ -36,6 +51,7 @@ class TabluarQqual(IDTracker):
         self.pss_adapter = pss_adapter
 
         self.rules = defaultdict(lambda: {"activation":[], "inhibition":[]})
+        self.rules_rx = defaultdict(list)
 
         self.species_dict = {}
         self.transitions = []
@@ -57,7 +73,7 @@ class TabluarQqual(IDTracker):
         # use the template in "resources" folder
         # resources/tabular_qual_pss_template.xlsx
 
-        template_path = resources.files('skm_pss_adapters.resources') / 'tabular_qual_pss_template.xlsx'
+        template_path = None #resources.files('skm_pss_adapters.resources') / 'tabular_qual_pss_template.xlsx'
 
         # print(template)
         # print(template.exists())
@@ -71,17 +87,22 @@ class TabluarQqual(IDTracker):
         model_id = self.pss_adapter.model_id
         name = self.pss_adapter.model_name
 
-        notes = []
-        versions = []
+        notes = [self.pss_adapter.model_description]
+        versions = ["1.0.0"]
 
-        source_urls = []
-        described_by = []
-        derived_from = []
+        source_urls = ["https://skm.nib.si"]
+        described_by = [] # "Publication"
+        derived_from = [] # "Origin_publication"
         biological_processes = []
         taxons = []
         created_iso = self.pss_adapter.export_datetime
         modified_iso = None
-        creators = []
+        creators = [TabularQualPerson(
+            family_name=creator.family_name,
+            given_name=creator.given_name,
+            organization=creator.organization,
+            email=creator.email
+        ) for creator in self.pss_adapter.creators]
         contributors = []
 
         return ModelInfo(
@@ -108,27 +129,70 @@ class TabluarQqual(IDTracker):
 
         if status == 1:
             species.set_id(species_id)
-            pass
+            return species_id
 
-        else:
+        # annotations... use fc id and "external_links" (list of <db.:<id>), parse to (qulaifier, db:id)
 
-            tabqual_species = TabularQualSpecies(
-                species_id=species_id,
-                name=species.label,
-                compartment=species.compartment,
-                constant=species.constant,
-                initial_level=None,
-                max_level=None,
-                annotations=[],
-                notes=[]
-            )
+        # Collect raw links array from the adapter
+        links = self.pss_adapter.node_annotations.get(species.name, {}).get("external_links", [])
 
-            self.set_species_id(species, species_id)
-            species.set_id(species_id)
+        if links is None:
+            links = []
 
-            self.species_dict[species_id] = tabqual_species
+        # If a functional cluster ID exists, inject it as a standard <db>:<id> reference
+        functional_cluster_id = self.pss_adapter.node_annotations.get(species.name, {}).get("functional_cluster_id", None)
+        if functional_cluster_id:
+            links.append(f"skm:{functional_cluster_id}")
 
-            print(f"TabluarQqual: species id: {species.name} --> {species_id}", species.compartment, species.form, species.sbo_term)
+        # add tair from "ath_homologues" if exists, as link to "tair"
+        ath_homologues = self.pss_adapter.node_annotations.get(species.name, {}).get("ath_homologues", [])
+        if ath_homologues:
+            for ath_homologue in ath_homologues:
+                links.append("tair:{ath_homologue}")
+
+        # Process the entire reference array using the pre-warmed TabularQual strategy
+        # Unrecognized or malformed links will naturally fall into the 'skipped_links' array
+        annotations, skipped_links = annotation_manager.process_node("tabularqual", links)
+
+        # Optional: Print tracking alerts for your skipped items
+        for skipped in skipped_links:
+            print(f"TabularQual: warning, skipping or could not parse external link for species {species.name}: {skipped}")
+
+
+        notes = []
+
+        # "description" as note 1
+        description = self.pss_adapter.node_annotations.get(species.name, {}).get("description", None)
+        if description:
+            notes.append((f"description:{description}"))
+
+        # "form as note 2
+        form = species.form
+        if form:
+            notes.append((f"species form:{form}"))
+
+        # "additional_information" as note 3
+        additional_information = self.pss_adapter.node_annotations.get(species.name, {}).get("additional_information", None)
+        if additional_information:
+            notes.append((f"additional_information:{additional_information}"))
+
+        tabqual_species = TabularQualSpecies(
+            species_id=species_id,
+            name=species.label,
+            compartment=species.compartment,
+            constant=species.constant,
+            initial_level=None,
+            max_level=None,
+            annotations=annotations,
+            notes=notes,
+        )
+
+        self.set_species_id(species, species_id)
+        species.set_id(species_id)
+
+        self.species_dict[species_id] = tabqual_species
+
+        print(f"TabluarQqual: species id: {species.name} --> {species_id}", species.compartment, species.form, species.sbo_term)
 
 
         return species_id
@@ -181,7 +245,7 @@ class TabluarQqual(IDTracker):
 
         for target in targets:
             self.rules[target][reaction.reaction_effect].append(reaction_rule)
-            # rules_rx[target][reaction_effect].append(reaction_id)
+            self.rules_rx[target].append(reaction.reaction_id)
 
     def create_transitions(self):
         ''' Create TabularQual Transitions from the collected rules '''
@@ -196,14 +260,36 @@ class TabluarQqual(IDTracker):
             update_function = rule_composer(species_id, activation_rules, inhibition_rules)
 
             transition_id = f"tr_{species_id}"
+
+            # reactions in this transition
+            reactions = [self.pss_adapter.reactions[reaction_id] for reaction_id in self.rules_rx[species_id]]
+
+            # annotations... use "external_links" (list of <db.:<id>), parce to (db, id)
+            links = []
+            for reaction in reactions:
+                links.extend(reaction.external_links or [])
+                # add reaction_id as link to skm
+                links.append(f"skm:{reaction.reaction_id}")
+            annotations, skipped_links = annotation_manager.process_node("tabularqual", links)
+
+            # Optional: Print tracking alerts for your skipped items
+            for skipped in skipped_links:
+                print(f"TabularQual: warning, skipping or could not parse external link for species {species.name}: {skipped}")
+
+            # notes -- generate a note based on how the transition was produced (e.g. if multiple reactions combined...)
+            if len(reactions) > 1:
+                notes = [f"Transition rule composed from {len(reactions)} reactions: {', '.join(self.rules_rx[species_id])}"]
+            else:
+                notes = [f"Transition rule generated from reaction: {self.rules_rx[species_id][0]}"]
+
             transition = TabularQualTransition(
                 transition_id=transition_id,
                 target=species_id,
                 name=None,
                 level=1,
                 rule=update_function,
-                annotations=[],
-                notes=[]
+                annotations=annotations,
+                notes=notes
             )
 
             self.transitions.append(transition)
