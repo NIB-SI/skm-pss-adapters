@@ -92,7 +92,7 @@ databases:
   tair:
     qualifier: "bqbiol:is"
     display_name: "TAIR"
-    canonical_prefix: "tair"
+    canonical_prefix: "tair.name"
     reasoning: "The Arabidopsis Information Resource. Encapsulates physical genomic loci and specific model system structural genes for thale cress models."
 
   plaza:

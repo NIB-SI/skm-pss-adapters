@@ -73,7 +73,7 @@ class PSSAdapter():
 
         self.model_id = model_id or "pss_exported_model"
         self.model_name = model_name or "PSS Exported Model"
-        self.model_description = model_description or "Model exported from the Plant Stress Signalling knowledge graph (PSS) available at https://skm.nib.si using the skm-pss-adapters package."
+        self.model_description = model_description or "Model exported from the Plant Stress Signalling knowledge graph (PSS) available at https://skm.nib.si using the skm-pss-export package."
 
         if creator:
             self.creators = [Person(*creator.split("|")) for creator in creator] # expects format of: familyName | givenName | organization | email

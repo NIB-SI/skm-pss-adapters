@@ -1,13 +1,37 @@
-# skm-pss-adapters
-Export adapters from PSS neo4j db to other (flatfile) formats
+# skm-pss-export
 
+Export models from the Plant Stress Signalling (PSS) Neo4j knowledge graph to various file formats. 
+
+
+
+## Installation
+ 
+Install directly from GitHub:
+```bash
+pip install git+https://github.com/NIB-SI/skm-pss-export.git
+```
+ 
+Alternatively, clone and install locally:
+```bash
+git clone https://github.com/NIB-SI/skm-pss-export.git
+cd pss-export
+pip install .
+```
+ 
+For development (editable install):
+```bash
+git clone https://github.com/NIB-SI/skm-pss-export.git
+cd pss-export
+pip install -e .
+```
+ 
 
 ## PSS database
 
 For testing, a snapshot of the PSS database is available at:
 https://github.com/NIB-SI/skm-neo4j
 
-### Connection to Neo4j settings
+### Connection to Neo4j
 
 You can pass the connection settings (uri, username, password) to the CLI using command-line arguments: 
 
@@ -24,28 +48,12 @@ MY_NEO4J_USER=neo4j
 MY_NEO4J_PASSWORD=password
 ```
 
-If you used the defaults in the skm-neo4j repo, you can use the `.env.example` file as provided. 
+If you used the defaults in the [skm-neo4j](https://github.com/NIB-SI/skm-neo4j) repo, you can use the `.env.example` file as provided. 
 ```bash
 mv .env.example .env
 ```
 
-## Usage
-
-Create environment with dependencies, e.g. using `mamba`:
-
-```bash
-mamba create -n pss-adapters conda-forge::neo4j-python-driver=4.4 conda-forge::python-libsbml conda-forge::pyyaml conda-forge::click python-dotenv
-```
-
-If using the model fixes module, also install the following dependecies:
-```bash 
-pip install pandas networkx rich matplotlib
-```
-
-If using the TabulaQual format, also install that dependency:
-```bash 
-pip install tabularqual
-```
+## CLI usage
 
 ### SBML:
 
@@ -54,15 +62,17 @@ To view the CLI options:
 python pss_adapter_cli.py to-sbml --help
 ```
 
-Create the SBML file using the CLI:
+Create an SBML file:
 ```bash
-python pss_adapter_cli.py to-sbml output.sbml --access public
+pss-export to-sbml output.sbml --access public
 ```
-
 
 Using the model-fixing functions:
 ```bash
-python pss_adapter_cli.py to-sbml output-model-fixes.sbml --access public --model-fixes-identify  --model-fixes-apply
+pss-export to-sbml output-model-fixes.sbml \
+  --access public \
+  --model-fixes-identify \
+  --model-fixes-apply
 ```
 
 To add equations to the SBML file, you can use SBMLsqueezer from 
@@ -71,29 +81,41 @@ https://github.com/draeger-lab/SBMLsqueezer, e.g.
 java -jar  /path..to..jar/SBMLsqueezer-2.2.jar --sbml-in-file output.sbml  --sbml-out-file output-squeezed
 ```
 
-Known limitations and issues:
-- The SBML file does not contain equations for the reactions.
-    - See https://github.com/R4d0slav/ThesisRepository
-	- You can add the equations using SBMLsqueezer as described above.
-- Continuous updates to the PSS database means that the model may not be connected or completely consistent with modelling.
-- Some molecules may be disconnected in the SBML file, for example if:
-	- They occur in multiple compartments, but are not connected by a transport reaction.
-	- A protein is formed by a translation reaction, but the protein is not "activated" by an "activation" reaction.
-	- A complex is formed by a reaction, but the complex is not "activated" by an "activation" reaction.
+#### Known limitations
+
+- **Missing equations**: The SBML file does not contain reaction equations. Add them using SBMLsqueezer as shown above. See also [ThesisRepository](https://github.com/R4d0slav/ThesisRepository).
+- **Database consistency**: Continuous updates to the PSS database mean the model may not be fully connected or consistent with modeling assumptions.
+- **Disconnected molecules**: Some molecules may be disconnected in the SBML file if:
+  - They occur in multiple compartments but lack transport reactions
+  - A protein is formed by translation but not activated by an activation reaction
+  - A complex is formed but not activated by an activation reaction
 
 ### TabularQual:
 
-To view the CLI options:
+View available options:
 ```bash
-python pss_adapter_cli.py to-tabularqual --help
+pss-export to-tabularqual --help
+```
+ 
+Create a TabularQual file:
+```bash
+pss-export to-tabularqual output.tsv --access public
 ```
 
-Create the TabularQual file using the CLI:
-```bash
-python pss_adapter_cli.py to-tabularqual output.tsv --access public
-```
+#### Known limitations
+
+- **Database consistency**: Continuous updates to the PSS database mean the model may not be fully connected or consistent with modeling assumptions.
+- **Disconnected molecules**: Some molecules may be disconnected in the TabularQual file if:
+  - They occur in multiple compartments but lack transport reactions
+  - A protein is formed by translation but not activated by an activation reaction
+  - A complex is formed but not activated by an activation reaction
 
 
-## TODOs
+## Related Projects
+ 
+- [skm-neo4j](https://github.com/NIB-SI/skm-neo4j) - PSS database snapshots
+- [Stress Knowledge Map (SKM)](https://skm.nib.si) - Web interface for the knowledge graph
 
-- Make a TOML file for installing from pip and a requirements file with fixed dependency version for testing
+## License
+
+MIT License. See [LICENSE](LICENSE) for details.

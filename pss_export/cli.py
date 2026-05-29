@@ -3,20 +3,23 @@
 import click
 import functools
 
-from skm_pss_adapters.graph_db import GraphDB
-from skm_pss_adapters.pss import PSSAdapter
+from pss_export.graph_db import GraphDB
+from pss_export.pss import PSSAdapter
 
 # click option that converts comma separated string into list
+# if no argument is provided, it returns None (instead of empty list)
 # (existing options in click do not handle unlimited number of values)
 # simple solution found here: https://stackoverflow.com/a/48394085
 class ConvertStrToList(click.Option):
-    def type_cast_value(self, ctx, value) -> list:
+    def type_cast_value(self, ctx, value):
         try:
-            value = str(value)
-            list_of_items = [c.strip() for c in value.split(",")]
-            return list_of_items
+            if value is None:
+                return None
+            else:
+                return [v.strip() for v in value.split(",")]
         except Exception:
             raise click.BadParameter(value)
+
 
 def neo4j_common_params(func):
     @click.option("--neo4j-uri", default=None, help="Neo4j connection URI.")
@@ -31,7 +34,7 @@ def export_common_params(func):
     # model_id, model_name, model_description, etc
     @click.option("--model-id", default="my_pss_model", help="Model ID to use in export.")
     @click.option("--model-name", default="PSS Model", help="Model name to use in export.")
-    @click.option("--model-description", default="Model exported from the Plant Stress Signalling knowledge graph (PSS) available at https://skm.nib.si using the skm-pss-adapters package.", help="Model description to use in export.")
+    @click.option("--model-description", default="Model exported from the Plant Stress Signalling knowledge graph (PSS) available at https://skm.nib.si using the skm-pss-export package.", help="Model description to use in export.")
     @click.option("--creator", default=None, help="Creator of the model, in the format of: familyName | givenName | organization | email. Can be specified multiple times for multiple creators.", multiple=True)
     @functools.wraps(func)
     def wrapper(*args, **kwargs):
@@ -83,12 +86,6 @@ def to_sbml(neo4j_uri, neo4j_user, neo4j_password,
             kinetic_laws):
     """
     Export model to SBML.
-
-    ACCESS: Boolean flag (True or False) for public access.
-
-    NEO4J_URI: Neo4j connection URI (e.g. bolt://localhost:7687).
-
-    FILENAME: Output SBML file path.
     """
     if verbose:
         click.echo(f"Exporting to SBML...")
@@ -139,6 +136,9 @@ def to_tabularqual(neo4j_uri, neo4j_user, neo4j_password,
             filename,
             verbose
             ):
+    """
+    Export model to TabularQual.
+    """
 
     if verbose:
         click.echo(f"Exporting to TabularQual...")

@@ -73,7 +73,7 @@ class TabluarQqual(IDTracker):
         # use the template in "resources" folder
         # resources/tabular_qual_pss_template.xlsx
 
-        template_path = None #resources.files('skm_pss_adapters.resources') / 'tabular_qual_pss_template.xlsx'
+        template_path = None #resources.files('pss_export.resources') / 'tabular_qual_pss_template.xlsx'
 
         # print(template)
         # print(template.exists())
@@ -148,7 +148,7 @@ class TabluarQqual(IDTracker):
         ath_homologues = self.pss_adapter.node_annotations.get(species.name, {}).get("ath_homologues", [])
         if ath_homologues:
             for ath_homologue in ath_homologues:
-                links.append("tair:{ath_homologue}")
+                links.append(f"tair:{ath_homologue}")
 
         # Process the entire reference array using the pre-warmed TabularQual strategy
         # Unrecognized or malformed links will naturally fall into the 'skipped_links' array
@@ -192,7 +192,7 @@ class TabluarQqual(IDTracker):
 
         self.species_dict[species_id] = tabqual_species
 
-        print(f"TabluarQqual: species id: {species.name} --> {species_id}", species.compartment, species.form, species.sbo_term)
+        # print(f"TabluarQqual: species id: {species.name} --> {species_id}", species.compartment, species.form, species.sbo_term)
 
 
         return species_id
@@ -215,19 +215,19 @@ class TabluarQqual(IDTracker):
         # (2) substrate glyphs and arcs
         # (substrate)-[consumption]->(reaction)
         for species in reaction.substrates:
-            print("TabluarQqual: substrate species:", species.name)
+            # print("TabluarQqual: substrate species:", species.name)
             self.get_tabularqual_species(species)
 
         # (3) product glyphs and arcs
         # (reaction)-[production]->(product)
         for species in reaction.products:
-            print("TabluarQqual: product species:", species.name)
+            # print("TabluarQqual: product species:", species.name)
             self.get_tabularqual_species(species)
 
         # (4) modifier glyphs and arcs
         # (modifier)-[modifies]->(reaction)
         for species in reaction.modifiers:
-            print("TabluarQqual: modifier species:", species.name)
+            # print("TabluarQqual: modifier species:", species.name)
             self.get_tabularqual_species(species)
 
         rule_constructor = reaction_rule_constructor(reaction)
@@ -237,7 +237,7 @@ class TabluarQqual(IDTracker):
 
         targets, reaction_rule = rule_constructor(reaction)
 
-        print("TabluarQqual: reaction rule:", reaction.reaction_id, "targets:", targets, "rule:", reaction_rule)
+        # print("TabluarQqual: reaction rule:", reaction.reaction_id, "targets:", targets, "rule:", reaction_rule)
 
         if reaction_rule is None:
             print(f"TabluarQqual: {reaction.reaction_id}, no reaction rule generated")
@@ -252,7 +252,7 @@ class TabluarQqual(IDTracker):
 
         for species_id, rule_dict in self.rules.items():
 
-            print("TabluarQqual: creating transition for species:", species_id)
+            # print("TabluarQqual: creating transition for species:", species_id)
 
             activation_rules = rule_dict["activation"]
             inhibition_rules = rule_dict["inhibition"]
@@ -274,7 +274,7 @@ class TabluarQqual(IDTracker):
 
             # Optional: Print tracking alerts for your skipped items
             for skipped in skipped_links:
-                print(f"TabularQual: warning, skipping or could not parse external link for species {species.name}: {skipped}")
+                print(f"TabularQual: warning, skipping or could not parse external link for species {species_id}: {skipped}")
 
             # notes -- generate a note based on how the transition was produced (e.g. if multiple reactions combined...)
             if len(reactions) > 1:
@@ -294,10 +294,3 @@ class TabluarQqual(IDTracker):
 
             self.transitions.append(transition)
 
-    # transition_id: Optional[str]
-    # name: Optional[str]
-    # target: str
-    # level: Optional[int]  # resultLevel
-    # rule: str  # boolean expression string
-    # annotations: List[Tuple[str, str]] = field(default_factory=list)
-    # notes: List[str] = field(default_factory=list)

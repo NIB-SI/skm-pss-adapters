@@ -1,7 +1,7 @@
 from ..entity_classes import Reaction
 from .config import pss_export_config, pss_schema_config
 
-INVENTED_REASOON_ALLOWLIST = ["invented:harmonise-location"]
+INVENTED_REASON_ALLOWLIST = ["invented:harmonise-location"]
 
 
 class PSSCollector:
@@ -85,7 +85,7 @@ class PSSCollector:
                     OR size([link IN r.external_links WHERE link IN $invented_reason_allowlist | 1]) > 0
                 )
                 ''')
-            arguments['invented_reason_allowlist'] = INVENTED_REASOON_ALLOWLIST
+            arguments['invented_reason_allowlist'] = INVENTED_REASON_ALLOWLIST
 
         if len(cy_filters) == 0:
             return "", arguments
@@ -111,7 +111,7 @@ class PSSCollector:
                         collect(p) AS path
                 '''
             result = tx.run(cy, **arguments)
-            return [r for r in result]
+            return list(result)
 
         reaction_data = self.pss_adapter.graph_db.run_query(
             _collect_reactions, where_clause, arguments)

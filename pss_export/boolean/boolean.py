@@ -82,10 +82,10 @@ def reaction_rule_constructor(reaction):
 def preparerule(function):
 
     def wrapper(reaction):
-        print(f"Processing reaction {reaction.reaction_id}...")
-        print(f"  substrates: {[n for n in reaction.substrates]}")
-        print(f"  products: {[n for n in reaction.products]}")
-        print(f"  modifiers: {[n for n in reaction.modifiers]}")
+        # print(f"Processing reaction {reaction.reaction_id}...")
+        # print(f"  substrates: {[n for n in reaction.substrates]}")
+        # print(f"  products: {[n for n in reaction.products]}")
+        # print(f"  modifiers: {[n for n in reaction.modifiers]}")
         s_set = {n.id for n in reaction.substrates}
         p_set = {n.id for n in reaction.products}
         m_set = {n.id for n in reaction.modifiers}
