@@ -99,7 +99,7 @@ pss-export to-tabularqual --help
  
 Create a TabularQual file:
 ```bash
-pss-export to-tabularqual output.tsv --access public
+pss-export to-tabularqual output.xlsx --access public
 ```
 
 #### Known limitations
