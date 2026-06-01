@@ -111,6 +111,23 @@ pss-export to-tabularqual output.xlsx --access public
   - A complex is formed but not activated by an activation reaction
 
 
+## Tests
+
+Two test files are in `tests/`:
+
+- `test_pss_export.py` — unit tests for entity classes, reaction logic, and annotation handling; no database required
+- `test_integration.py` — integration tests for SBML and TabularQual export; requires a running Neo4j instance
+
+Run with:
+```bash
+pytest tests/ -v
+```
+
+Integration tests skip automatically if no database connection is available. Set connection details via environment variables or a `.env` file (see [Connection to Neo4j](#connection-to-neo4j)).
+
+> *Tests were AI-generated (Claude) and minimally human-curated.*
+
+
 ## Related Projects
  
 - [skm-neo4j](https://github.com/NIB-SI/skm-neo4j) - PSS database snapshots

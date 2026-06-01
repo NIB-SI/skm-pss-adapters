@@ -3,8 +3,8 @@
 import click
 import functools
 
-from pss_export.graph_db import GraphDB
-from pss_export.pss import PSSAdapter
+from pss_export import GraphDB
+from pss_export import PSSAdapter
 
 # click option that converts comma separated string into list
 # if no argument is provided, it returns None (instead of empty list)

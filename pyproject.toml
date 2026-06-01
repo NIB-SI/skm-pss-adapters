@@ -44,6 +44,11 @@ dependencies = [
     "matplotlib>=3.4",
 ]
 
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0",
+]
+
 [project.urls]
 Homepage = "https://github.com/NIB-SI/pss-export"
 

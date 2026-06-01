@@ -5,7 +5,7 @@
 import re
 
 from .pss.config import pss_export_config
-from .pss.pss_reaction_definitions import reaction_types, reaction_classes, participant_roles, reaction_subtypes
+from .pss.pss_reaction_definitions import reaction_classes, participant_roles, reaction_subtypes
 
 #-------------------------------------
 #  Helper classes (for nodes and reactions)
