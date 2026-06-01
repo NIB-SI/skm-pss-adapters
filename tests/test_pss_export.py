@@ -1,0 +1,275 @@
+"""
+Tests for pss-export Python API (no database connection required).
+
+Covers:
+  - Config loading
+  - Species / Reaction / IDTracker entity classes
+  - Reaction subtype and role assignment
+  - AnnotationManager reference processing
+"""
+
+import os
+import tempfile
+import pytest
+
+import pss_export.pss.config
+import pss_export.pss.pss_reaction_definitions as rdef
+import pss_export.entity_classes as ec
+from pss_export.pss.config import Config, pss_export_config
+from pss_export.annotations.annotation_manager import AnnotationManager
+
+
+# ---------------------------------------------------------------------------
+# Config
+# ---------------------------------------------------------------------------
+
+class TestConfig:
+
+    def test_kwargs_override(self):
+        """Config accepts arbitrary keyword arguments as attributes."""
+        c = Config(filename=None, foo="bar", count=42)
+        assert c.foo == "bar"
+        assert c.count == 42
+
+    def test_pss_export_config_loaded(self):
+        """pss_export_config loads the YAML and exposes expected keys."""
+        assert isinstance(pss_export_config.nodes_to_ignore, list)
+        assert len(pss_export_config.nodes_to_ignore) > 0
+        assert hasattr(pss_export_config, "compartment_to_short")
+        assert hasattr(pss_export_config, "node_form_to_SBO")
+        assert hasattr(pss_export_config, "reaction_subtype_to_SBO")
+
+    def test_compartment_short_codes(self):
+        """Key compartments map to their expected short codes."""
+        m = pss_export_config.compartment_to_short
+        assert m["cytoplasm"] == "cyt"
+        assert m["nucleus"] == "nuc"
+        assert m["chloroplast"] == "chl"
+
+
+# ---------------------------------------------------------------------------
+# Species
+# ---------------------------------------------------------------------------
+
+class TestSpecies:
+
+    def test_basic_construction(self):
+        s = ec.Species("WRKY33", "protein", "nucleus")
+        assert s.name == "WRKY33"
+        assert s.form == "protein"
+        assert s.compartment == "nucleus"
+
+    def test_gene_is_constant(self):
+        assert ec.Species("WRKY33", "gene", "nucleus").constant is True
+
+    def test_non_gene_not_constant(self):
+        assert ec.Species("WRKY33", "protein", "nucleus").constant is False
+
+    def test_none_compartment_defaults_to_cytoplasm(self):
+        assert ec.Species("X", "protein", None).compartment == "cytoplasm"
+
+    def test_unknown_compartment_defaults_to_cytoplasm(self):
+        assert ec.Species("X", "protein", "unknown").compartment == "cytoplasm"
+
+    def test_putative_prefix_stripped(self):
+        assert ec.Species("X", "protein", "putative:nucleus").compartment == "nucleus"
+
+    def test_sbo_term_set_for_known_form(self):
+        s = ec.Species("X", "protein", "cytoplasm")
+        assert s.sbo_term == 297  # SBO:0000297 — protein complex
+
+    def test_sbo_term_none_for_unknown_form(self):
+        s = ec.Species("X", "unknown_form_xyz", "cytoplasm")
+        assert s.sbo_term is None
+
+    def test_label_strips_locus_tag(self):
+        s = ec.Species("WRKY33[AT2G38470]", "protein", "cytoplasm")
+        assert s.label == "WRKY33"
+
+
+# ---------------------------------------------------------------------------
+# Reaction subtype and role assignment
+# ---------------------------------------------------------------------------
+
+class TestReaction:
+
+    def _make(self, rtype, props=None):
+        return ec.Reaction("rx", rtype, props or {})
+
+    def test_catalysis_no_participants(self):
+        r = self._make(rdef.reaction_types.CATALYSIS)
+        assert r.reaction_subtype == rdef.reaction_subtypes.CATALYSIS_WITHOUT_SUBSTRATE_AND_WITHOUT_MODIFIER
+        assert r.modifier_role == rdef.participant_roles.CATALYST
+
+    def test_binding_without_modifier(self):
+        r = self._make(rdef.reaction_types.BINDING_OLIGOMERISATION)
+        assert r.reaction_subtype == rdef.reaction_subtypes.BINDING_WITHOUT_MODIFIER
+        assert r.substrate_role == rdef.participant_roles.INTERACTOR
+
+    def test_translocation_without_modifier(self):
+        r = self._make(rdef.reaction_types.TRANSLOCATION)
+        assert r.reaction_subtype == rdef.reaction_subtypes.TRANSLOCATION_WITHOUT_MODIFIER
+        assert r.modifier_role == rdef.participant_roles.TRANSPORTER
+
+    def test_transcriptional_activation(self):
+        r = self._make(
+            rdef.reaction_types.TRANSCRIPTIONAL_TRANSLATIONAL_ACTIVATION,
+            {"reaction_mechanism": "transcription"},
+        )
+        assert r.reaction_subtype == rdef.reaction_subtypes.TRANSCRIPTIONAL_ACTIVATION_WITH_MODIFIER
+        assert r.modifier_role == rdef.participant_roles.STIMULATOR
+        assert r.substrate_role == rdef.participant_roles.TEMPLATE
+
+    def test_transcriptional_repression(self):
+        r = self._make(
+            rdef.reaction_types.TRANSCRIPTIONAL_TRANSLATIONAL_REPRESSION,
+            {"reaction_mechanism": "transcription"},
+        )
+        assert r.reaction_subtype == rdef.reaction_subtypes.TRANSCRIPTIONAL_REPRESSION_WITH_MODIFIER
+        assert r.modifier_role == rdef.participant_roles.INHIBITOR
+
+    def test_unknown_activation(self):
+        r = self._make(rdef.reaction_types.UNKNOWN, {"reaction_effect": "activation"})
+        assert r.reaction_subtype == rdef.reaction_subtypes.UNKNOWN_ACTIVATION_WITHOUT_MODIFIER
+
+    def test_sbo_term_assigned(self):
+        r = self._make(rdef.reaction_types.CATALYSIS)
+        assert r.reaction_type_sbo == 176  # SBO:0000176 — biochemical reaction
+        assert r.kinetic_law_sbo == 29     # SBO:0000029 — Henri-Michaelis-Menten
+
+    def test_add_substrate_product_modifier(self):
+        r = self._make(rdef.reaction_types.CATALYSIS)
+        r.add_substrate(ec.Species("MPK4", "protein", "cytoplasm"))
+        r.add_product(ec.Species("WRKY33", "protein_active", "nucleus"))
+        r.add_modifier(ec.Species("MPK3", "protein_active", "cytoplasm"))
+        assert r.has_substrates()
+        assert r.has_modifiers()
+        assert len(r.substrates) == 1
+        assert len(r.products) == 1
+        assert len(r.modifiers) == 1
+
+    def test_subtype_updates_with_participants(self):
+        """Subtype is assigned at construction; adding participants afterwards
+        does not retroactively change it — this is the current design."""
+        r = self._make(rdef.reaction_types.CATALYSIS)
+        assert r.reaction_subtype == rdef.reaction_subtypes.CATALYSIS_WITHOUT_SUBSTRATE_AND_WITHOUT_MODIFIER
+        r.add_substrate(ec.Species("X", "protein", "cytoplasm"))
+        # subtype stays as-is (participants are added post-construction)
+        assert r.reaction_subtype == rdef.reaction_subtypes.CATALYSIS_WITHOUT_SUBSTRATE_AND_WITHOUT_MODIFIER
+
+
+# ---------------------------------------------------------------------------
+# IDTracker
+# ---------------------------------------------------------------------------
+
+class TestIDTracker:
+
+    def test_new_species_gets_unique_id(self):
+        tracker = ec.IDTracker()
+        s = ec.Species("WRKY33", "protein", "nucleus")
+        id_, status = tracker.get_species_id(s)
+        assert status == 0  # new
+        assert "WRKY33" in id_
+        assert "nuc" in id_
+
+    def test_same_species_returns_existing_id(self):
+        tracker = ec.IDTracker()
+        s = ec.Species("WRKY33", "protein", "nucleus")
+        id1, _ = tracker.get_species_id(s)
+        tracker.set_species_id(s, id1)
+        id2, status = tracker.get_species_id(s)
+        assert status == 1  # existing
+        assert id1 == id2
+
+    def test_different_form_gets_different_id(self):
+        tracker = ec.IDTracker()
+        s1 = ec.Species("WRKY33", "protein", "nucleus")
+        s2 = ec.Species("WRKY33", "protein_active", "nucleus")
+        id1, _ = tracker.get_species_id(s1)
+        tracker.set_species_id(s1, id1)
+        id2, _ = tracker.get_species_id(s2)
+        assert id1 != id2
+
+    def test_counters_increment(self):
+        tracker = ec.IDTracker()
+        s = ec.Species("X", "protein", "cytoplasm")
+        id_, _ = tracker.get_species_id(s)
+        tracker.set_species_id(s, id_)
+        assert tracker.counters["species"] == 1
+
+    def test_write_entities_table(self, tmp_path):
+        tracker = ec.IDTracker()
+
+        s1 = ec.Species("MPK4", "protein", "cytoplasm")
+        id1, _ = tracker.get_species_id(s1)
+        tracker.set_species_id(s1, id1)
+
+        s2 = ec.Species("WRKY33", "protein_active", "nucleus")
+        id2, _ = tracker.get_species_id(s2)
+        tracker.set_species_id(s2, id2)
+
+        r = ec.Reaction("r1", rdef.reaction_types.CATALYSIS, {})
+        tracker.set_reaction_id(r, "r_cat_1")
+
+        outfile = str(tmp_path / "entities.tsv")
+        tracker.write_entities_table(outfile)
+
+        with open(outfile) as f:
+            lines = f.readlines()
+
+        assert lines[0].strip() == "id\ttype\tname\tform\tcompartment"
+        assert len(lines) == 4  # header + 2 species + 1 reaction
+        ids = {line.split("\t")[0] for line in lines[1:]}
+        assert id1 in ids
+        assert id2 in ids
+        assert "r_cat_1" in ids
+
+
+# ---------------------------------------------------------------------------
+# AnnotationManager
+# ---------------------------------------------------------------------------
+
+class DummyStrategy:
+    """Passthrough strategy that returns valid_records for inspection."""
+    def format_node(self, valid_records):
+        return valid_records
+
+
+class TestAnnotationManager:
+
+    @pytest.fixture
+    def am(self):
+        manager = AnnotationManager()
+        manager.register_export_strategy("test", DummyStrategy())
+        return manager
+
+    def test_registry_loaded(self, am):
+        assert "uniprot" in am._registry
+        assert "chebi" in am._registry
+
+    def test_known_ref_is_valid(self, am):
+        result, invalid = am.process_node("test", ["uniprot:P12345"])
+        assert len(result) == 1
+        assert invalid == []
+        assert result[0]["local_id"] == "P12345"
+        assert result[0]["qualifier"] == "bqbiol:is"
+
+    def test_ref_without_colon_is_invalid(self, am):
+        result, invalid = am.process_node("test", ["BADREF"])
+        assert result == []
+        assert "BADREF" in invalid
+
+    def test_unknown_prefix_is_invalid(self, am):
+        result, invalid = am.process_node("test", ["notadb:XYZ"])
+        assert result == []
+        assert "notadb:XYZ" in invalid
+
+    def test_mixed_refs(self, am):
+        refs = ["uniprot:P12345", "NOCODON", "chebi:12345", "ghost:000"]
+        result, invalid = am.process_node("test", refs)
+        assert len(result) == 2
+        assert len(invalid) == 2
+
+    def test_unsupported_format_raises(self, am):
+        with pytest.raises(ValueError, match="Unsupported format"):
+            am.process_node("nonexistent_format", ["uniprot:P12345"])
