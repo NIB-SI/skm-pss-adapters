@@ -52,11 +52,11 @@ dev = [
 [project.urls]
 Homepage = "https://github.com/NIB-SI/pss-export"
 
-[project.scripts]
-pss-export = "pss_export.cli:cli"
+[tool.setuptools.packages.find]
+include = ["pss_export*"]
 
 [tool.setuptools]
-packages = ["pss_export"]
+include-package-data = true
 
 [tool.setuptools.package-data]
-pss_export = ["*.yaml", "*.yml"]
+pss_export = ["**/*.yaml", "**/*.yml", "resources/*"]
